@@ -30,7 +30,7 @@ def register(asset: service.Asset, db: Database = Depends(get_db)):
 
 
 @router.get("/records/{kind}")
-def list_records(kind: Literal["observation", "localization", "asset_match", "station_attempt", "reading", "match_review", "station_evidence"],
+def list_records(kind: Literal["observation", "localization", "asset_match", "station_attempt", "reading", "match_review", "station_evidence", "processing_report"],
                  run_id: str | None = None, db: Database = Depends(get_db)):
     return service.records(db, kind, run_id)
 
@@ -94,3 +94,20 @@ def reindex_stations(run_id: str, db: Database = Depends(get_db)):
         raise HTTPException(409, "Import writer is busy") from exc
     except (ValueError, KeyError, TypeError, OSError, OverflowError, bagit.BagError) as exc:
         raise HTTPException(422, "Station archive cannot be indexed; review server archive integrity and station metadata") from exc
+
+
+@router.post("/stations/{attempt_id}/captures/{sequence}/process")
+def process_capture(attempt_id: str, sequence: int, db: Database = Depends(get_db)):
+    import bagit
+    from ..station_processing import process
+    from ..writer_lock import WriterLockHeld
+    if sequence < 1:
+        raise HTTPException(422, "Capture sequence must be positive")
+    try:
+        return process(db, attempt_id, sequence)
+    except WriterLockHeld as exc:
+        raise HTTPException(409, "Import writer is busy") from exc
+    except ImportError as exc:
+        raise HTTPException(503, "Install the locked server image processing dependencies") from exc
+    except (ValueError, KeyError, TypeError, OSError, OverflowError, bagit.BagError) as exc:
+        raise HTTPException(422, str(exc)) from exc

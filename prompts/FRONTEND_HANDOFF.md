@@ -56,3 +56,6 @@
 ### 最新实现边界：站点与三维联动
 
 TaskPlaybackPage 已接入 RunStationPanel 和 RunAssetEvidence/useRunAssets。站点列表可跳转结果时间；同一 scene_version_id 的台账设备可选中并冻结查询时刻。保留“路线完成待复核”“区间不是驻留时长”“离线不是故障”等准确提示。站点采集元数据使用 GET /api/instruments/records/station_evidence?run_id=...；没有图片下载 API。禁止为展示效果补造设备、轨迹、读数或已确认状态。测试仍未执行。
+
+
+StationEvidenceDetails 已连接真实 station_evidence / processing_report 和单次采集 process API，包含 blocked、observed_2d、no_configured_marker_detected 状态。优化页面时保留具体输入缺口、路线/采集序号区别、无三维定位和未校准置信度提示；不要把二维观测美化成已匹配设备。

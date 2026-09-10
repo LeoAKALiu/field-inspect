@@ -18,6 +18,7 @@ class StationCapture:
         self.reason = "not_at_station"
         self.stable_since = 0
         self.last_odom = 0
+        self.last_pose = None
         self.last_stamp = -1
         self.anchor = None
         self.started = 0
@@ -32,6 +33,7 @@ class StationCapture:
         self.key = key
         self.ready = self.failed = False
         self.stable_since = self.last_odom = 0
+        self.last_pose = None
         self.last_stamp = -1
         self.anchor = None
         self.started = time.monotonic_ns()
@@ -105,6 +107,12 @@ class StationCapture:
             distance = math.sqrt(sum((a-b)**2 for a,b in zip(values[6:9], self.anchor[:3])))
             angle = 2*math.acos(min(1.0, abs(sum(a*b for a,b in zip(q,self.anchor[3:])))))
             valid = distance <= 0.03 and angle <= 0.02
+        if valid:
+            self.last_pose = {"frame_id": message.header.frame_id, "child_frame_id": message.child_frame_id,
+                "position": dict(zip(("x", "y", "z"), values[6:9])),
+                "orientation_xyzw": q, "position_variance_m2": covariance}
+        else:
+            self.last_pose = None
         if not valid:
             self.stable_since = 0; self.anchor = None
             self.reason = "measured_motion_or_localization_unstable"
@@ -137,8 +145,10 @@ class StationCapture:
             with (self.directory / "frame.png").open("xb") as stream:
                 stream.write(payload); stream.flush(); os.fsync(stream.fileno())
             with (self.directory / "source.json").open("x", encoding="utf-8") as stream:
-                json.dump({"image_header_stamp_ns": stamp, "frame_id": message.header.frame_id,
-                           "encoding": message.encoding, "pose_header_stamp_ns": self.last_stamp}, stream)
+                json.dump({"schema_version": "1.1", "image_header_stamp_ns": stamp, "frame_id": message.header.frame_id,
+                           "encoding": message.encoding, "pose_header_stamp_ns": self.last_stamp,
+                           "pose": self.last_pose, "pose_method": "latest_measured_odometry",
+                           "image_pose_gap_ns": abs(stamp-self.last_stamp)}, stream)
                 stream.flush(); os.fsync(stream.fileno())
             self.reason = "evidence_persisted_waiting_for_operator"
             self._record("captured", hashlib.sha256(payload).hexdigest())

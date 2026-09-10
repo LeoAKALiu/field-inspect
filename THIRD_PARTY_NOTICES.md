@@ -11,3 +11,6 @@ LIRIS 样例保留 assets/tunnel/liris/SOURCES.md 的哈希、来源和 ETALAB 2
 2026-09-10 核对：LIRIS 官方数据页 https://dataset-dl.liris.cnrs.fr/synthetic-cave-and-tunnel-systems/ 明示 ETALAB v2.0；OBJ/PLY 字节与 SOURCES.md 两项摘要一致。
 
 两份补丁对应许可证已按构建脚本锁定版本保存：licenses/Livox-SDK2.txt（08f523c930b2f0ba1e98a6afaa8d7476bf479908）和 licenses/MCAP.txt（releases/cpp/v0.8.0）。保留各自版权声明；这些许可不扩展到整个产品。vendor 源码和硬件运行库不随快照发布。
+
+
+服务端新增 opencv-python-headless 4.11.0.86（仅作为锁定安装依赖，不把二进制 wheel 纳入源码仓库）。其已安装发行包的 LICENSE.txt 与 LICENSE-3RD-PARTY.txt 原文保存于 licenses/opencv-python-headless-4.11.0.86-*；相关第三方组件须遵守对应声明。NumPy 保留依赖发行包自身许可证。以上不改变产品整体 UNLICENSED 状态。

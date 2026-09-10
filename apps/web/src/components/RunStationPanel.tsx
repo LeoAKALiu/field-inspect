@@ -1,3 +1,4 @@
+import { StationEvidenceDetails } from './StationEvidenceDetails';
 import { useEffect, useState } from 'react';
 
 type Attempt = { attempt_id: string; station_id: string; attempt_seq: number;
@@ -7,6 +8,7 @@ export function RunStationPanel({ runId, origin, end, onSeek }: {
   runId: string; origin: string | undefined; end: number; onSeek: (time: number) => void;
 }) {
   const [data, setData] = useState<{ runId: string; rows: Attempt[] } | null>(null);
+  const [selectedAttempt, setSelectedAttempt] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -41,9 +43,12 @@ export function RunStationPanel({ runId, origin, end, onSeek }: {
         return <div key={row.attempt_id} className="timeline-event-item">
           <div>{row.station_id} · 第 {row.attempt_seq} 次 · {{ success: '路线完成（待复核）', skipped: '人工跳过', failed: '失败' }[row.result] ?? row.result}
             <small> {row.ended_at} {row.reason_code ?? ''}</small></div>
+          <button onClick={() => setSelectedAttempt(row.attempt_id)}>查看采集证据</button>
           <button disabled={!available} onClick={() => onSeek(seconds)}>{available ? '定位回放时刻' : '超出可用轨迹时间'}</button>
         </div>;
       })}
+      {selectedAttempt && <><button onClick={() => setSelectedAttempt(null)}>关闭证据详情</button>
+        <StationEvidenceDetails key={`${selectedAttempt}:${revision}`} runId={runId} attemptId={selectedAttempt} /></>}
     </div>
   </section>;
 }

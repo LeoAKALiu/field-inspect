@@ -11,6 +11,7 @@ dependencies = [
     "uvicorn[standard]>=0.32.0",
     "pydantic>=2.10.0",
     "pydantic-settings>=2.6.0",
+    "opencv-python-headless==4.11.0.86",
 ]
 
 [project.optional-dependencies]
@@ -28,6 +29,10 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/digital_twin_api"]
+
+[[tool.uv.index]]
+url = "https://pypi.org/simple"
+default = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
