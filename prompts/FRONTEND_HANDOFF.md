@@ -51,3 +51,8 @@
 ## Codex 合并要求
 
 核对修改范围与 API 契约后合并选中的前端分支；另一方案仅留作参考。保持“代码完成”和“测试/客户验收完成”分别记录。向外部模型提供的材料应来自脱敏工作区，而不是整个 iCloud 项目。
+
+
+### 最新实现边界：站点与三维联动
+
+TaskPlaybackPage 已接入 RunStationPanel 和 RunAssetEvidence/useRunAssets。站点列表可跳转结果时间；同一 scene_version_id 的台账设备可选中并冻结查询时刻。保留“路线完成待复核”“区间不是驻留时长”“离线不是故障”等准确提示。站点采集元数据使用 GET /api/instruments/records/station_evidence?run_id=...；没有图片下载 API。禁止为展示效果补造设备、轨迹、读数或已确认状态。测试仍未执行。

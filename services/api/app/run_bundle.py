@@ -507,6 +507,11 @@ def _materialize(
     archive_path: Path,
     imported_at: datetime,
 ) -> None:
+    from . import station_import
+    try:
+        station_rows = station_import.prepare(manifest, archive_path)
+    except (ValueError, KeyError, TypeError, OSError, OverflowError) as exc:
+        raise BundleImportError("invalid_station_evidence", str(exc), stage="materialize") from exc
     fields = _task_fields(manifest)
     with db.transaction() as conn:
         scene_id = _manifest_scene_id(manifest)
@@ -622,6 +627,11 @@ def _materialize(
                 fields["alignment_id"],
             ),
         )
+
+        try:
+            station_import.materialize(db, conn, manifest.run_id, station_rows)
+        except ValueError as exc:
+            raise BundleImportError("station_identity_conflict", str(exc), stage="materialize") from exc
 
 
 def _maybe_crash(crash_after: str | None, stage: str) -> None:

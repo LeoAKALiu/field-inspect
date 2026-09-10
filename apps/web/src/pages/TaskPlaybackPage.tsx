@@ -1,3 +1,5 @@
+import { RunAssetEvidence, useRunAssets } from '../components/RunAssetEvidence';
+import { RunStationPanel } from '../components/RunStationPanel';
 import React, { useEffect, useMemo, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { getMultiChannelPlaybackOption } from '../services/mock/mockTelemetryData';
@@ -49,6 +51,8 @@ export const TaskPlaybackPage: React.FC = () => {
   const selectedTask =
     catalogTasks.find((task) => task.id === selectedTaskId) ?? catalogTasks[0] ?? null;
 
+  const [assetSelection, setAssetSelection] = useState<{ runId: string; assetId: string; at: string } | null>(null);
+  const { devices: registeredDevices, error: assetError } = useRunAssets(selectedTask?.scene_id, selectedTask?.scene_version_id);
   const isRecorded = selectedTask?.run_kind === 'recorded';
   const { data: boundMetadata, loading: boundLoading } = useBoundSceneMetadata(
     isRecorded && selectedTask?.scene_version_id ? selectedTask.scene_id : null,
@@ -304,11 +308,17 @@ export const TaskPlaybackPage: React.FC = () => {
                 }
                 vehiclePose={vehiclePose}
                 trajectory={twinTrajectory}
-                sensorDevices={selectedTask?.run_kind === 'recorded' ? [] : scene.devices}
+                sensorDevices={selectedTask?.run_kind === 'recorded' ? registeredDevices : scene.devices}
                 detectionEvents={displayEvents}
                 playbackTime={playbackTime}
-                selectedObjectId={null}
+                selectedObjectId={assetSelection?.runId === selectedTask?.id ? assetSelection?.assetId ?? null : null}
                 cameraCommand={null}
+                onObjectSelect={event => {
+                  if (event.kind !== 'device' || !selectedTask || !trajectory[0] || !registeredDevices.some(d => d.id === event.id)) return;
+                  setIsPlaying(false);
+                  setAssetSelection({ runId: selectedTask.id, assetId: event.id,
+                    at: new Date(Date.parse(trajectory[0].timestamp) + playbackTime * 1000).toISOString() });
+                }}
               />
               {disclaimer ? (
                 <p className="recorded-not-provided" data-testid="display-trajectory-disclaimer">
@@ -324,11 +334,21 @@ export const TaskPlaybackPage: React.FC = () => {
               ) : null}
               {selectedTask?.run_kind === 'recorded' ? (
                 <p className="recorded-not-provided" data-testid="devices-not-provided">
-                  本包未提供监测设备
+                  {assetError || (registeredDevices.length ? `显示 ${registeredDevices.length} 台同版本台账设备；离线表示未连接实时遥测，点击查看当前回放时刻的读数。` : '此场景版本尚无登记设备')}
                 </p>
               ) : null}
             </div>
           </div>
+
+          {assetSelection && assetSelection.runId === selectedTask?.id &&
+            <section className="panel-card"><div className="panel-header">设备历史证据（选择时刻）
+              <button onClick={() => setAssetSelection(null)}>关闭</button></div>
+              <RunAssetEvidence key={`${assetSelection.assetId}:${assetSelection.at}`}
+                assetId={assetSelection.assetId} at={assetSelection.at} /></section>}
+
+          {selectedTask && <RunStationPanel key={selectedTask.id} runId={selectedTask.id}
+            origin={trajectory[0]?.timestamp} end={maxDuration}
+            onSeek={time => { setIsPlaying(false); setPlaybackTime(time); }} />}
 
           <div className="panel-card">
             <div className="panel-header">

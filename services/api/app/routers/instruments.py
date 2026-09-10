@@ -30,7 +30,7 @@ def register(asset: service.Asset, db: Database = Depends(get_db)):
 
 
 @router.get("/records/{kind}")
-def list_records(kind: Literal["observation", "localization", "asset_match", "station_attempt", "reading", "match_review"],
+def list_records(kind: Literal["observation", "localization", "asset_match", "station_attempt", "reading", "match_review", "station_evidence"],
                  run_id: str | None = None, db: Database = Depends(get_db)):
     return service.records(db, kind, run_id)
 
@@ -81,3 +81,16 @@ def observed_analysis(observation_id: str, db: Database = Depends(get_db)):
     if len(confirmed) != 1:
         return {"observation_id": observation_id, "status": "needs_review" if matches else "unmatched", "matches": matches}
     return call(service.analyze, db, confirmed.pop(), observation["captured_at"])
+
+
+@router.post("/runs/{run_id}/reindex-stations")
+def reindex_stations(run_id: str, db: Database = Depends(get_db)):
+    import bagit
+    from ..station_import import reindex
+    from ..writer_lock import WriterLockHeld
+    try:
+        return reindex(db, run_id)
+    except WriterLockHeld as exc:
+        raise HTTPException(409, "Import writer is busy") from exc
+    except (ValueError, KeyError, TypeError, OSError, OverflowError, bagit.BagError) as exc:
+        raise HTTPException(422, "Station archive cannot be indexed; review server archive integrity and station metadata") from exc
