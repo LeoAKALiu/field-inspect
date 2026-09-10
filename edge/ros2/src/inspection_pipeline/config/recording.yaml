@@ -1,0 +1,116 @@
+# Dual recording profiles (scout_mini_ws#3).
+#
+# Exactly two public profile IDs exist: `acceptance_raw` and `routine`.
+# `profile_id` selects the ACTIVE profile for this deployment and is explicit:
+# a missing, unknown, or ambiguous selection is rejected before any run starts.
+# Legacy flat configs (without `profile_id`/`profiles`) fail with a migration
+# error instead of silently picking a default — acceptance recordings must
+# never be inferred.
+#
+# `acceptance_raw` keeps every recorded topic REQUIRED (topics == required_topics):
+# no topic may be demoted to optional, so no formal-acceptance topic can be
+# omitted by later edits. Raw-topic fidelity means no application-level
+# downsampling, transcoding, or topic omission; MCAP Zstd chunk compression is
+# lossless and stays enabled (raw ≠ uncompressed bytes).
+#
+# `routine` is the bounded daily policy: optional topics may be reduced after
+# review, but the profile's `required_topics` must always be recorded.
+# Storage split/cache/CRC/index/summary/free-space protections are shared by
+# both profiles and validated identically.
+schema_version: "1.0"
+storage_id: "mcap"
+storage_config_file: "mcap_writer_options.yaml"
+profile_id: "routine"
+# Split well below FAT32's single-file limit; size or duration, whichever comes first.
+max_bagfile_size_bytes: 2147483648
+max_bagfile_duration_seconds: 300
+# A measured Jetson one-second burst is 82,184,925 bytes; 64 MiB lost messages
+# during a split. Double buffering budgets about 512 MiB, plus message overshoot
+# and DDS/compression allocations. See docs/recording-cache-sizing.md.
+max_cache_size_bytes: 268435456
+# Separate from the writer byte cache: preserve IMU bursts in the DDS reader queue.
+imu_qos_depth: 4096
+# A run is stopped before it can consume the whole 256 GB Jetson system disk.
+max_run_size_bytes: 107374182400
+min_start_free_space_bytes: 32212254720
+min_runtime_free_space_bytes: 21474836480
+monitor_period_seconds: 1.0
+stop_timeout_seconds: 30.0
+profiles:
+  acceptance_raw:
+    # Lossless Zstd chunk compression only; presets are validated by the loader.
+    storage_preset_profile: "zstd_fast"
+    topics:
+      - /livox/lidar
+      - /livox/imu
+      - /camera/image_raw
+      - /camera/camera_info
+      - /odom
+      - /scout_status
+      - /Odometry
+      - /Laser_map
+      - /cloud_registered
+      - /cloud_registered_body
+      - /detections
+      - /tf
+      - /tf_static
+      - /cmd_vel_safe
+      - /safety/obstacle_clear
+      - /inspection/status
+      - /route/status
+      - /diagnostics
+    # Every acceptance topic is mandatory; the loader enforces topics == required_topics.
+    required_topics:
+      - /livox/lidar
+      - /livox/imu
+      - /camera/image_raw
+      - /camera/camera_info
+      - /odom
+      - /scout_status
+      - /Odometry
+      - /Laser_map
+      - /cloud_registered
+      - /cloud_registered_body
+      - /detections
+      - /tf
+      - /tf_static
+      - /cmd_vel_safe
+      - /safety/obstacle_clear
+      - /inspection/status
+      - /route/status
+      - /diagnostics
+  routine:
+    storage_preset_profile: "zstd_fast"
+    topics:
+      - /livox/lidar
+      - /livox/imu
+      - /camera/image_raw
+      - /camera/camera_info
+      - /odom
+      - /scout_status
+      - /Odometry
+      - /Laser_map
+      - /cloud_registered
+      - /cloud_registered_body
+      - /detections
+      - /tf
+      - /tf_static
+      - /cmd_vel_safe
+      - /safety/obstacle_clear
+      - /inspection/status
+      - /route/status
+      - /diagnostics
+    required_topics:
+      - /livox/lidar
+      - /livox/imu
+      - /camera/image_raw
+      - /camera/camera_info
+      - /scout_status
+      - /Odometry
+      - /cloud_registered
+      - /tf
+      - /tf_static
+      - /cmd_vel_safe
+      - /safety/obstacle_clear
+      - /inspection/status
+      - /diagnostics

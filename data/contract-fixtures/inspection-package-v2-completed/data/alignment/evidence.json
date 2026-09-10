@@ -1,0 +1,6 @@
+{
+  "alignment_id": "alignment-scene-001-v1",
+  "scene_version_id": "scene-001-v1",
+  "method": "surveyed_rigid_transform",
+  "coordinate_system": "scene_local_yup"
+}

@@ -1,0 +1,23 @@
+{
+  "attempt_id": "att-v03-0002",
+  "run_id": "run-v03-golden-1",
+  "station_id": "stn-001",
+  "attempt_seq": 2,
+  "started_at": "2026-08-25T03:00:00.000Z",
+  "ended_at": "2026-08-25T03:00:10.000Z",
+  "result": "success",
+  "reason_code": "operator_skipped",
+  "reason_detail": null,
+  "contract_version": "0.3",
+  "source_type": "simulation",
+  "provenance": {
+    "source": "simulation",
+    "status": "simulated"
+  },
+  "lineage": {
+    "source": "simulation",
+    "producer": "marker_proxy",
+    "producer_version": "apriltag_36h11_v1",
+    "derived_from": null
+  }
+}

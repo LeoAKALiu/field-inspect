@@ -1,0 +1,22 @@
+{
+  "run_id": "run-v03-golden-2",
+  "final_status": "aborted",
+  "skipped_station_ids": [],
+  "retried_station_ids": [],
+  "abort": {
+    "reason_code": "safety_stop",
+    "detail": "安全停车后操作员终止运行"
+  },
+  "contract_version": "0.3",
+  "source_type": "simulation",
+  "provenance": {
+    "source": "simulation",
+    "status": "simulated"
+  },
+  "lineage": {
+    "source": "simulation",
+    "producer": "marker_proxy",
+    "producer_version": "apriltag_36h11_v1",
+    "derived_from": null
+  }
+}

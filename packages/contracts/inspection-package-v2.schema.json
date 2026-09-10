@@ -1,0 +1,427 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://digital-twin.local/contracts/inspection-package-v2.schema.json",
+  "title": "Formal Inspection Package contract v2",
+  "description": "Sole formal handoff contract between Jetson and Digital Twin. A complete RFC 8493 BagIt 1.0 package carries exact Scene Version identity, Verified Alignment evidence digest, complete Replay Trajectory, and reviewable ArUco Acceptance Evidence. Digital Twin does not parse MCAP, does not promise point-cloud rendering, does not receive customer instrument data, and does not provide an online upload endpoint. v1 remains only for explicitly marked development or migration fixtures.",
+  "$defs": {
+    "Identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "RelativePayloadPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[^\\u0000]+$"
+    },
+    "Sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "GitCommit": {
+      "type": "string",
+      "pattern": "^(unknown|[a-f0-9]{7,40})$"
+    },
+    "UtcDateTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ShortText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "Position3D": {
+      "type": "object",
+      "required": ["x", "y", "z"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "z": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "Point2D": {
+      "type": "object",
+      "required": ["x", "y"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "RotationRpyDeg": {
+      "type": "object",
+      "required": ["roll", "pitch", "yaw"],
+      "properties": {
+        "roll": { "type": "number" },
+        "pitch": { "type": "number" },
+        "yaw": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "Pose3D": {
+      "type": "object",
+      "required": ["position", "rotation_rpy_deg"],
+      "properties": {
+        "position": { "$ref": "#/$defs/Position3D" },
+        "rotation_rpy_deg": { "$ref": "#/$defs/RotationRpyDeg" }
+      },
+      "additionalProperties": false
+    },
+    "PoseTolerance": {
+      "type": "object",
+      "required": ["translation_m", "rotation_deg"],
+      "properties": {
+        "translation_m": { "type": "number", "exclusiveMinimum": 0 },
+        "rotation_deg": { "type": "number", "exclusiveMinimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "SceneVersionRef": {
+      "type": "object",
+      "required": ["scene_id", "scene_version_id", "asset_sha256"],
+      "properties": {
+        "scene_id": { "$ref": "#/$defs/Identifier" },
+        "scene_version_id": { "$ref": "#/$defs/Identifier" },
+        "asset_sha256": { "$ref": "#/$defs/Sha256" }
+      },
+      "additionalProperties": false
+    },
+    "AlignmentRef": {
+      "type": "object",
+      "required": ["alignment_id", "evidence_sha256"],
+      "properties": {
+        "alignment_id": { "$ref": "#/$defs/Identifier" },
+        "evidence_sha256": { "$ref": "#/$defs/Sha256" }
+      },
+      "additionalProperties": false
+    },
+    "BagReference": {
+      "type": "object",
+      "required": ["storage_id", "path"],
+      "properties": {
+        "storage_id": { "const": "mcap" },
+        "path": { "$ref": "#/$defs/RelativePayloadPath" }
+      },
+      "additionalProperties": false
+    },
+    "ReplayReference": {
+      "type": "object",
+      "required": ["trajectory_path"],
+      "properties": {
+        "trajectory_path": { "$ref": "#/$defs/RelativePayloadPath" }
+      },
+      "additionalProperties": false
+    },
+    "Artifact": {
+      "type": "object",
+      "required": ["path", "kind", "display"],
+      "properties": {
+        "path": { "$ref": "#/$defs/RelativePayloadPath" },
+        "kind": { "enum": ["evidence_image", "pointcloud", "inspection_result"] },
+        "display": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "PayloadInventoryEntry": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "$ref": "#/$defs/RelativePayloadPath" },
+        "sha256": { "$ref": "#/$defs/Sha256" }
+      },
+      "additionalProperties": false
+    },
+    "PackageException": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "message": { "$ref": "#/$defs/ShortText" }
+      },
+      "additionalProperties": false
+    },
+    "Detector": {
+      "type": "object",
+      "required": ["name", "version", "configuration"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "version": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "configuration": { "type": "object", "additionalProperties": true }
+      },
+      "additionalProperties": false
+    },
+    "EvidenceLineage": {
+      "type": "object",
+      "required": [
+        "camera_calibration_sha256",
+        "detector",
+        "transform_id",
+        "transform_sha256"
+      ],
+      "properties": {
+        "camera_calibration_sha256": { "$ref": "#/$defs/Sha256" },
+        "detector": { "$ref": "#/$defs/Detector" },
+        "transform_id": { "$ref": "#/$defs/Identifier" },
+        "transform_sha256": { "$ref": "#/$defs/Sha256" }
+      },
+      "additionalProperties": false
+    },
+    "LandmarkObservation": {
+      "type": "object",
+      "required": [
+        "seq",
+        "mcap_frame_timestamp",
+        "corners_px",
+        "pose_camera",
+        "pose_scene",
+        "translation_residual_m",
+        "rotation_residual_deg",
+        "camera_calibration_sha256",
+        "detector",
+        "transform_id",
+        "transform_sha256"
+      ],
+      "properties": {
+        "seq": { "type": "integer", "minimum": 0 },
+        "mcap_frame_timestamp": { "$ref": "#/$defs/UtcDateTime" },
+        "corners_px": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": { "$ref": "#/$defs/Point2D" }
+        },
+        "pose_camera": { "$ref": "#/$defs/Pose3D" },
+        "pose_scene": { "$ref": "#/$defs/Pose3D" },
+        "translation_residual_m": { "type": "number", "minimum": 0 },
+        "rotation_residual_deg": { "type": "number", "minimum": 0 },
+        "camera_calibration_sha256": { "$ref": "#/$defs/Sha256" },
+        "detector": { "$ref": "#/$defs/Detector" },
+        "transform_id": { "$ref": "#/$defs/Identifier" },
+        "transform_sha256": { "$ref": "#/$defs/Sha256" }
+      },
+      "additionalProperties": false
+    },
+    "LandmarkEvidence": {
+      "type": "object",
+      "required": [
+        "landmark_id",
+        "marker_id",
+        "dictionary",
+        "role",
+        "physical_size_m",
+        "registered_pose",
+        "pose_tolerance",
+        "min_valid_samples",
+        "annotated_image_path",
+        "lineage",
+        "observations",
+        "sample_count",
+        "translation_p95_m",
+        "rotation_p95_deg"
+      ],
+      "properties": {
+        "landmark_id": { "$ref": "#/$defs/Identifier" },
+        "marker_id": { "type": "integer", "minimum": 0 },
+        "dictionary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_]+$"
+        },
+        "role": { "enum": ["required", "auxiliary"] },
+        "physical_size_m": { "type": "number", "exclusiveMinimum": 0 },
+        "registered_pose": { "$ref": "#/$defs/Pose3D" },
+        "pose_tolerance": { "$ref": "#/$defs/PoseTolerance" },
+        "min_valid_samples": { "type": "integer", "minimum": 1 },
+        "route_portion": { "enum": ["beginning", "middle", "end"] },
+        "annotated_image_path": { "$ref": "#/$defs/RelativePayloadPath" },
+        "lineage": { "$ref": "#/$defs/EvidenceLineage" },
+        "observations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100000,
+          "items": { "$ref": "#/$defs/LandmarkObservation" }
+        },
+        "sample_count": { "type": "integer", "minimum": 1 },
+        "translation_p95_m": { "type": "number", "minimum": 0 },
+        "rotation_p95_deg": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": { "role": { "const": "required" } },
+            "required": ["role"]
+          },
+          "then": { "required": ["route_portion"] }
+        }
+      ]
+    },
+    "FrameEvidence": {
+      "type": "object",
+      "required": ["path", "timestamp", "mcap_frame_timestamp"],
+      "properties": {
+        "path": { "$ref": "#/$defs/RelativePayloadPath" },
+        "timestamp": { "$ref": "#/$defs/UtcDateTime" },
+        "mcap_frame_timestamp": { "$ref": "#/$defs/UtcDateTime" }
+      },
+      "additionalProperties": false
+    },
+    "AcceptanceEvidence": {
+      "type": "object",
+      "required": ["first_frame", "last_frame", "landmarks"],
+      "properties": {
+        "first_frame": { "$ref": "#/$defs/FrameEvidence" },
+        "last_frame": { "$ref": "#/$defs/FrameEvidence" },
+        "landmarks": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 512,
+          "items": { "$ref": "#/$defs/LandmarkEvidence" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "TrajectoryPoint": {
+      "type": "object",
+      "required": ["seq", "timestamp", "position", "heading_deg", "speed_mps"],
+      "properties": {
+        "seq": { "type": "integer", "minimum": 0 },
+        "timestamp": { "$ref": "#/$defs/UtcDateTime" },
+        "position": { "$ref": "#/$defs/Position3D" },
+        "heading_deg": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "exclusiveMaximum": 360
+        },
+        "speed_mps": { "type": ["number", "null"], "minimum": 0 },
+        "battery_pct": { "type": ["number", "null"], "minimum": 0, "maximum": 100 }
+      },
+      "additionalProperties": false
+    },
+    "Trajectory": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "run_id",
+        "scene_version_id",
+        "alignment_id",
+        "coordinate_system",
+        "points"
+      ],
+      "properties": {
+        "schema_version": { "const": "2.0" },
+        "run_id": { "$ref": "#/$defs/Identifier" },
+        "scene_version_id": { "$ref": "#/$defs/Identifier" },
+        "alignment_id": { "$ref": "#/$defs/Identifier" },
+        "coordinate_system": { "const": "scene_local_yup" },
+        "points": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1000000,
+          "items": { "$ref": "#/$defs/TrajectoryPoint" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "Manifest": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "source_kind",
+        "run_id",
+        "package_sha256",
+        "name",
+        "status",
+        "exceptions",
+        "started_at",
+        "ended_at",
+        "coordinate_system",
+        "scene_version",
+        "alignment",
+        "git_commit",
+        "config_sha256",
+        "model_version",
+        "bag",
+        "replay",
+        "acceptance_evidence",
+        "artifacts",
+        "payload_inventory",
+        "exit_reason"
+      ],
+      "properties": {
+        "schema_version": { "const": "2.0" },
+        "source_kind": {
+          "enum": ["synthetic_contract_fixture", "inspection_run"]
+        },
+        "run_id": { "$ref": "#/$defs/Identifier" },
+        "package_sha256": {
+          "$ref": "#/$defs/Sha256",
+          "description": "SHA-256 of canonical payload inventory lines 'digest  path\\n' sorted by path. Inventory covers every BagIt payload file except data/manifest.json. Declared 95th percentiles use linear interpolation at (n-1)*p/100."
+        },
+        "name": { "$ref": "#/$defs/ShortText" },
+        "status": {
+          "enum": ["completed", "completed_with_exceptions"]
+        },
+        "exceptions": {
+          "type": "array",
+          "maxItems": 100,
+          "items": { "$ref": "#/$defs/PackageException" }
+        },
+        "started_at": { "$ref": "#/$defs/UtcDateTime" },
+        "ended_at": { "$ref": "#/$defs/UtcDateTime" },
+        "coordinate_system": { "const": "scene_local_yup" },
+        "scene_version": { "$ref": "#/$defs/SceneVersionRef" },
+        "alignment": { "$ref": "#/$defs/AlignmentRef" },
+        "git_commit": { "$ref": "#/$defs/GitCommit" },
+        "config_sha256": { "$ref": "#/$defs/Sha256" },
+        "model_version": { "type": ["string", "null"] },
+        "bag": { "$ref": "#/$defs/BagReference" },
+        "replay": { "$ref": "#/$defs/ReplayReference" },
+        "acceptance_evidence": { "$ref": "#/$defs/AcceptanceEvidence" },
+        "artifacts": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": { "$ref": "#/$defs/Artifact" }
+        },
+        "payload_inventory": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": { "$ref": "#/$defs/PayloadInventoryEntry" }
+        },
+        "exit_reason": { "$ref": "#/$defs/ShortText" }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": { "status": { "const": "completed" } },
+            "required": ["status"]
+          },
+          "then": {
+            "properties": { "exceptions": { "maxItems": 0 } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "status": { "const": "completed_with_exceptions" } },
+            "required": ["status"]
+          },
+          "then": {
+            "properties": { "exceptions": { "minItems": 1 } }
+          }
+        }
+      ]
+    }
+  }
+}

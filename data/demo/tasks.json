@@ -1,0 +1,38 @@
+[
+  {
+    "id": "task-replay-001",
+    "scene_id": "scene-001",
+    "name": "8月1日例行巡检（回放）",
+    "mode": "replay",
+    "status": "completed",
+    "planned_start": "2026-08-01T09:00:00Z",
+    "actual_start": "2026-08-01T09:00:12Z",
+    "actual_end": "2026-08-01T09:02:48Z",
+    "distance_m": 151.8,
+    "event_count": 4
+  },
+  {
+    "id": "task-sim-001",
+    "scene_id": "scene-001",
+    "name": "实时模拟巡检 A",
+    "mode": "simulation",
+    "status": "running",
+    "planned_start": "2026-08-05T10:00:00Z",
+    "actual_start": "2026-08-05T10:00:00Z",
+    "actual_end": null,
+    "distance_m": null,
+    "event_count": 1
+  },
+  {
+    "id": "task-sim-002",
+    "scene_id": "scene-001",
+    "name": "夜间模拟巡检 B",
+    "mode": "simulation",
+    "status": "pending",
+    "planned_start": "2026-08-08T22:00:00Z",
+    "actual_start": null,
+    "actual_end": null,
+    "distance_m": null,
+    "event_count": 0
+  }
+]

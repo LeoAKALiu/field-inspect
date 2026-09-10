@@ -1,0 +1,31 @@
+{
+  "observation_id": "obs-v03-0002",
+  "run_id": "run-v03-golden-1",
+  "captured_at": "2026-08-25T03:02:11.500Z",
+  "image_region": {
+    "x_min": 0.62,
+    "y_min": 0.3,
+    "x_max": 0.71,
+    "y_max": 0.51,
+    "image_width": 1280,
+    "image_height": 1024
+  },
+  "detector": {
+    "kind": "marker_proxy",
+    "version": "apriltag_36h11_v1"
+  },
+  "confidence": 0.88,
+  "calibration_ref": "camera-calib-hik-cs050-v1",
+  "contract_version": "0.2",
+  "source_type": "simulation",
+  "provenance": {
+    "source": "simulation",
+    "status": "simulated"
+  },
+  "lineage": {
+    "source": "synthetic_fixture",
+    "producer": "marker_proxy",
+    "producer_version": "apriltag_36h11_v1",
+    "derived_from": "data/contract-fixtures/instrument-v0.3"
+  }
+}

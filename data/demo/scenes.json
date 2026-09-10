@@ -1,0 +1,40 @@
+[
+  {
+    "id": "scene-001",
+    "name": "庙岭隧道 K12+300—K12+900 段",
+    "description": "LIRIS 公开几何上的隧道巡检功能原型；路线为点云自动主廊道算法估计，业务数据为模拟",
+    "status": "active",
+    "geometry_ref": "models/scene-001.glb",
+    "bounds_min": {
+      "x": -120.1896,
+      "y": -34.261,
+      "z": -71.9806
+    },
+    "bounds_max": {
+      "x": 120.1896,
+      "y": 34.261,
+      "z": 71.9806
+    },
+    "length_m": 152,
+    "created_at": "2026-07-15T02:00:00Z"
+  },
+  {
+    "id": "scene-002",
+    "name": "城东综合管廊 2 号舱",
+    "description": "已归档的前期示范段",
+    "status": "archived",
+    "geometry_ref": null,
+    "bounds_min": {
+      "x": 0.0,
+      "y": -2.0,
+      "z": -4.0
+    },
+    "bounds_max": {
+      "x": 240.0,
+      "y": 2.0,
+      "z": 0.0
+    },
+    "length_m": 240.0,
+    "created_at": "2026-06-01T08:30:00Z"
+  }
+]

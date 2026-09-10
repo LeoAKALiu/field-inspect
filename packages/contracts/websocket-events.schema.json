@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://digital-twin.local/contracts/websocket-events.schema.json",
+  "title": "DigitalTwinWebSocketEvents",
+  "description": "WebSocket 通道报文契约。统一信封 {type, ts, payload}。通道：WS /ws/vehicle?task_id=（车辆位置推送）；WS /ws/replay/{task_id}（任务回放，支持客户端控制消息）。",
+  "$defs": {
+    "ServerMessage": {
+      "type": "object",
+      "description": "服务端 → 客户端统一信封",
+      "required": ["type", "ts", "payload"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "connection.ack",
+            "vehicle.state",
+            "replay.started",
+            "replay.point",
+            "replay.finished",
+            "event.created",
+            "datasource.status",
+            "error"
+          ]
+        },
+        "ts": { "type": "string", "format": "date-time" },
+        "payload": { "type": "object" }
+      },
+      "additionalProperties": false
+    },
+    "ClientMessage": {
+      "type": "object",
+      "description": "客户端 → 服务端消息（仅回放通道使用）",
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string", "enum": ["replay.control"] },
+        "payload": { "$ref": "#/$defs/ReplayControl" }
+      },
+      "additionalProperties": false
+    },
+    "ReplayControl": {
+      "type": "object",
+      "required": ["action"],
+      "properties": {
+        "action": { "type": "string", "enum": ["pause", "resume", "seek", "speed"] },
+        "seq": { "type": "integer", "minimum": 0, "description": "action=seek 时必填" },
+        "speed": { "type": "number", "exclusiveMinimum": 0, "maximum": 100, "description": "回放倍速，action=speed 时必填，默认 1.0" }
+      },
+      "additionalProperties": false
+    },
+    "ConnectionAck": {
+      "type": "object",
+      "required": ["server_time", "channel"],
+      "properties": {
+        "server_time": { "type": "string", "format": "date-time" },
+        "channel": { "type": "string", "enum": ["vehicle", "replay"] },
+        "task_id": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "ReplayStarted": {
+      "type": "object",
+      "required": ["task_id", "total_points", "speed"],
+      "properties": {
+        "task_id": { "type": "string" },
+        "total_points": { "type": "integer", "minimum": 0 },
+        "speed": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "ReplayPoint": {
+      "type": "object",
+      "required": ["point", "progress"],
+      "properties": {
+        "point": { "$ref": "./domain.schema.json#/$defs/TrajectoryPoint" },
+        "progress": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "ReplayFinished": {
+      "type": "object",
+      "required": ["task_id", "total_points"],
+      "properties": {
+        "task_id": { "type": "string" },
+        "total_points": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "ErrorPayload": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "x-message-bindings": {
+    "connection.ack": "ConnectionAck",
+    "vehicle.state": "domain.schema.json#/$defs/VehicleState",
+    "replay.started": "ReplayStarted",
+    "replay.point": "ReplayPoint",
+    "replay.finished": "ReplayFinished",
+    "event.created": "domain.schema.json#/$defs/DetectionEvent",
+    "datasource.status": "domain.schema.json#/$defs/DataSourceStatus",
+    "error": "ErrorPayload"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@digital-twin/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "FastAPI backend \u2014 Python scripts orchestrated via pnpm",
+  "scripts": {
+    "dev": "uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000",
+    "build": "uv run --frozen --no-dev python -m compileall app",
+    "typecheck": "echo 'Python typecheck: add mypy in a later phase'",
+    "lint": "uv run ruff check app tests",
+    "test": "uv run pytest"
+  }
+}

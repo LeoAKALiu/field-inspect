@@ -1,0 +1,64 @@
+{
+  "scene_id": "scene-001",
+  "scene_version_id": "scene-001-v1",
+  "asset_sha256": "f4cbcf538e84239400d013283deec074a99a57c40888c710b625424747ea2c3b",
+  "alignment_id": "alignment-scene-001-v1",
+  "evidence_sha256": "592d8cd16dae8b7bf7363363504a828f509c84b8ebcc49f51ab2c12b6826cefe",
+  "landmarks": [
+    {
+      "landmark_id": "aruco-begin-01",
+      "marker_id": 1,
+      "dictionary": "4X4_50",
+      "role": "required",
+      "physical_size_m": 0.2,
+      "registered_pose": {
+        "position": { "x": -52.0, "y": 1.05, "z": -18.0 },
+        "rotation_rpy_deg": { "roll": 0.0, "pitch": 0.0, "yaw": 12.0 }
+      },
+      "pose_tolerance": { "translation_m": 0.05, "rotation_deg": 2.0 },
+      "min_valid_samples": 3,
+      "route_portion": "beginning"
+    },
+    {
+      "landmark_id": "aruco-mid-02",
+      "marker_id": 2,
+      "dictionary": "4X4_50",
+      "role": "required",
+      "physical_size_m": 0.2,
+      "registered_pose": {
+        "position": { "x": -51.8, "y": 1.05, "z": -17.96 },
+        "rotation_rpy_deg": { "roll": 0.0, "pitch": 0.0, "yaw": 12.0 }
+      },
+      "pose_tolerance": { "translation_m": 0.05, "rotation_deg": 2.0 },
+      "min_valid_samples": 3,
+      "route_portion": "middle"
+    },
+    {
+      "landmark_id": "aruco-end-03",
+      "marker_id": 3,
+      "dictionary": "4X4_50",
+      "role": "required",
+      "physical_size_m": 0.2,
+      "registered_pose": {
+        "position": { "x": -51.4, "y": 1.05, "z": -17.88 },
+        "rotation_rpy_deg": { "roll": 0.0, "pitch": 0.0, "yaw": 12.0 }
+      },
+      "pose_tolerance": { "translation_m": 0.05, "rotation_deg": 2.0 },
+      "min_valid_samples": 3,
+      "route_portion": "end"
+    },
+    {
+      "landmark_id": "aruco-aux-10",
+      "marker_id": 10,
+      "dictionary": "4X4_50",
+      "role": "auxiliary",
+      "physical_size_m": 0.2,
+      "registered_pose": {
+        "position": { "x": -51.6, "y": 1.05, "z": -17.92 },
+        "rotation_rpy_deg": { "roll": 0.0, "pitch": 0.0, "yaw": 12.0 }
+      },
+      "pose_tolerance": { "translation_m": 0.05, "rotation_deg": 2.0 },
+      "min_valid_samples": 3
+    }
+  ]
+}

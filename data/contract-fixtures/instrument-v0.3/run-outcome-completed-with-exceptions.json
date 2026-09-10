@@ -1,0 +1,23 @@
+{
+  "run_id": "run-v03-golden-1",
+  "final_status": "completed_with_exceptions",
+  "skipped_station_ids": [
+    "stn-002"
+  ],
+  "retried_station_ids": [
+    "stn-001"
+  ],
+  "abort": null,
+  "contract_version": "0.3",
+  "source_type": "simulation",
+  "provenance": {
+    "source": "simulation",
+    "status": "simulated"
+  },
+  "lineage": {
+    "source": "simulation",
+    "producer": "marker_proxy",
+    "producer_version": "apriltag_36h11_v1",
+    "derived_from": null
+  }
+}

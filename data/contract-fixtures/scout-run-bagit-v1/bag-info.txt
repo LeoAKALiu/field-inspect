@@ -1,0 +1,6 @@
+Bag-Software-Agent: scout-inspection-bundle 1.0
+Bagging-Date: 2026-08-23
+External-Identifier: fixture-run-001
+Internal-Sender-Description: Synthetic contract fixture; not customer data
+Payload-Oxum: 1351.3
+Source-Organization: SCOUT Mini project

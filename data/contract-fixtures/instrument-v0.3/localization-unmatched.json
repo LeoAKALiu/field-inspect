@@ -1,0 +1,22 @@
+{
+  "localization_id": "loc-v03-0002",
+  "run_id": "run-v03-golden-1",
+  "observation_id": "obs-v03-0002",
+  "status": "unmatched",
+  "position": null,
+  "heading_deg": null,
+  "method": "marker_pose_scene_transform",
+  "residual_m": null,
+  "contract_version": "0.3",
+  "source_type": "simulation",
+  "provenance": {
+    "source": "simulation",
+    "status": "simulated"
+  },
+  "lineage": {
+    "source": "simulation",
+    "producer": "marker_proxy",
+    "producer_version": "apriltag_36h11_v1",
+    "derived_from": null
+  }
+}

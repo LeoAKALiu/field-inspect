@@ -1,0 +1,27 @@
+{
+  "name": "astra-inspect",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Astra Inspect | Offline inspection evidence and historical replay",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @digital-twin/web --filter @digital-twin/api dev",
+    "dev:web": "pnpm --filter @digital-twin/web dev",
+    "dev:api": "pnpm --filter @digital-twin/api dev",
+    "build": "pnpm --filter @digital-twin/contracts build && pnpm --filter @digital-twin/twin-viewer build && pnpm --filter @digital-twin/web build && pnpm --filter @digital-twin/api build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "test:api": "cd services/api && uv run pytest",
+    "test:e2e": "pnpm exec playwright test",
+    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm test:api"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@9.15.0"
+}

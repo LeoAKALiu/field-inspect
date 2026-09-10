@@ -1,0 +1,4 @@
+fixture:
+  source_kind: synthetic_contract_fixture
+  customer_data: false
+  max_linear_speed_mps: 0.2

@@ -1,0 +1,23 @@
+{
+  "attempt_id": "att-v03-0001",
+  "run_id": "run-v03-golden-1",
+  "station_id": "stn-001",
+  "attempt_seq": 1,
+  "started_at": "2026-08-25T02:59:40.000Z",
+  "ended_at": "2026-08-25T02:59:55.000Z",
+  "result": "failed",
+  "reason_code": "localization_unresolved",
+  "reason_detail": "首次停靠定位残差超限，触发重试",
+  "contract_version": "0.3",
+  "source_type": "simulation",
+  "provenance": {
+    "source": "simulation",
+    "status": "simulated"
+  },
+  "lineage": {
+    "source": "simulation",
+    "producer": "marker_proxy",
+    "producer_version": "apriltag_36h11_v1",
+    "derived_from": null
+  }
+}

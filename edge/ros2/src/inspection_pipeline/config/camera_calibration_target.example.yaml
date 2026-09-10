@@ -1,0 +1,12 @@
+schema_version: "1.0"
+target_id: "a2-checkerboard-commissioning-v1"
+pattern: "checkerboard"
+# Checkerboard values are inner-corner counts. Measure the printed board before use.
+columns: 9
+rows: 6
+square_size_m: 0.05
+marker_size_m: null
+aruco_dictionary: null
+dimensions_verified: false
+verified_at: null
+measurement_method: null

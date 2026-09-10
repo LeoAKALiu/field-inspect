@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "source_kind": "synthetic_contract_fixture",
+  "run_id": "fixture-run-001",
+  "scene_id": "scene-001",
+  "name": "SCOUT Mini 合成离线巡检包",
+  "status": "completed_with_exceptions",
+  "started_at": "2026-08-23T04:00:00Z",
+  "ended_at": "2026-08-23T04:00:03Z",
+  "coordinate_system": "scene_local_yup",
+  "alignment_id": "synthetic-alignment-v1",
+  "git_commit": "70b7a7a",
+  "config_sha256": "f0829dddb7e0ed27d66d6c0108028fd37202e306ae59e1788e3889fb9ff738c0",
+  "model_version": null,
+  "bag": null,
+  "replay": {
+    "trajectory_path": "replay/trajectory.json"
+  },
+  "artifacts": [],
+  "exit_reason": "synthetic_fixture_complete"
+}

@@ -1,0 +1,30 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      ASTRA_API_TOKEN: ${ASTRA_API_TOKEN:?Set a private operator secret before starting Docker}
+      TWIN_DB_PATH: /app/data/var/twin.db
+      TWIN_IMPORT_ROOT: /app/data/imports
+    volumes:
+      - ./data/imports:/app/data/imports
+      - ./data/var:/app/data/var
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+    ports:
+      - "127.0.0.1:5173:80"
+    depends_on:
+      api:
+        condition: service_healthy

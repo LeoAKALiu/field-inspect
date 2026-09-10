@@ -1,0 +1,66 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Test artifacts
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Data (local only)
+data/uploads/*
+!data/uploads/.gitkeep
+data/imports/*/*
+!data/imports/*/.gitkeep
+data/var/*
+!data/var/.gitkeep
+
+# Docker
+.docker/
+
+# Agent tooling
+.reasonix/
+
+# Private handoff and runtime
+private/
+*.bundle
+*.db
+*.sqlite*
+edge/ros2/install/
+edge/ros2/log/
+edge/ros2/vendor/

@@ -1,0 +1,15 @@
+{
+  "transform_id": "camera-to-scene-scene-001-v1",
+  "from": "camera_optical",
+  "to": "scene_local_yup",
+  "translation_m": {
+    "x": 0.12,
+    "y": 1.05,
+    "z": 0.04
+  },
+  "rotation_rpy_deg": {
+    "roll": 0.0,
+    "pitch": -2.0,
+    "yaw": 12.0
+  }
+}

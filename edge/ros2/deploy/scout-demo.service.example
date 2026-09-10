@@ -1,0 +1,14 @@
+[Unit]
+Description=SCOUT Mini ROS 2 demo
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/scout_mini_ws
+ExecStart=/bin/bash -lc 'source /opt/ros/humble/setup.bash && source install/setup.bash && exec ros2 launch scout_bringup demo.launch.py'
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/scout-mini/manifest.schema.json",
+  "title": "SCOUT Mini inspection run manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "status",
+    "started_at",
+    "git_commit",
+    "config_sha256",
+    "run_mode",
+    "bag",
+    "exit_reason"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "run_id": {"type": "string", "minLength": 1},
+    "status": {"enum": ["running", "completed", "completed_with_exceptions", "incomplete", "failed"]},
+    "started_at": {"type": "string", "format": "date-time"},
+    "ended_at": {"type": ["string", "null"], "format": "date-time"},
+    "git_commit": {"type": "string", "minLength": 7},
+    "config_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "run_mode": {"enum": ["commissioning", "production"]},
+    "model_version": {"type": ["string", "null"]},
+    "camera_calibration": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": [
+        "source_url",
+        "path",
+        "sha256",
+        "target_id",
+        "target_pattern",
+        "target_verified_at",
+        "target_source_url",
+        "target_path",
+        "target_sha256",
+        "profile_id",
+        "profile_source_url",
+        "profile_path",
+        "profile_sha256",
+        "identity_sha256",
+        "camera_model",
+        "camera_serial",
+        "lens_id"
+      ],
+      "properties": {
+        "source_url": {"type": "string", "minLength": 1},
+        "path": {"type": "string", "pattern": "^config/camera_calibration\\.(yaml|yml|ini)$"},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "target_id": {"type": "string", "minLength": 1},
+        "target_pattern": {"enum": ["checkerboard", "charuco"]},
+        "target_verified_at": {"type": "string", "format": "date-time"},
+        "target_source_url": {"type": "string", "minLength": 1},
+        "target_path": {"const": "config/camera_calibration_target.yaml"},
+        "target_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "profile_id": {"type": "string", "minLength": 1},
+        "profile_source_url": {"type": "string", "minLength": 1},
+        "profile_path": {"const": "config/camera_calibration_profile.yaml"},
+        "profile_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "identity_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "camera_model": {"type": "string", "minLength": 1},
+        "camera_serial": {"type": "string", "minLength": 1},
+        "lens_id": {"type": "string", "minLength": 1}
+      }
+    },
+    "fixed_route": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["route_id", "source_path", "path", "sha256", "verified"],
+      "properties": {
+        "route_id": {"type": "string", "minLength": 1},
+        "source_path": {"type": "string", "pattern": "^/"},
+        "path": {"const": "config/fixed_route.yaml"},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "verified": {"type": "boolean"}
+      }
+    },
+    "route_execution": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["execution_id", "execution_started_ns", "state", "reason", "attempts"],
+      "properties": {
+        "execution_id": {"type": "string", "minLength": 1},
+        "execution_started_ns": {"type": "integer", "minimum": 1},
+        "state": {
+          "enum": ["arming", "executing", "paused", "at_station", "completed", "completed_with_exceptions", "canceled"]
+        },
+        "reason": {"type": "string", "minLength": 1},
+        "attempts": {"type": "integer", "minimum": 1}
+      }
+    },
+    "recording": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "config_path",
+        "config_sha256",
+        "storage_config_path",
+        "storage_config_sha256",
+        "recorder_exit_code",
+        "log_path"
+      ],
+      "properties": {
+        "profile_id": {"enum": ["acceptance_raw", "routine"]},
+        "config_path": {"const": "config/recording.yaml"},
+        "config_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "storage_config_path": {"type": "string", "pattern": "^config/[A-Za-z0-9_.-]+\\.ya?ml$"},
+        "storage_config_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "recorder_exit_code": {"type": ["integer", "null"]},
+        "log_path": {"const": "recording/rosbag.log"}
+      }
+    },
+    "bag": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["storage_id", "path"],
+      "properties": {
+        "storage_id": {"const": "mcap"},
+        "path": {"type": "string", "minLength": 1},
+        "size_bytes": {"type": "integer", "minimum": 0},
+        "file_count": {"type": "integer", "minimum": 0},
+        "message_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "station_attempts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "generated_at", "producer_version"],
+      "properties": {
+        "path": {"const": "artifacts/stations/attempts.json"},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "generated_at": {"type": "string", "format": "date-time"},
+        "producer_version": {"const": "1.0.0"}
+      }
+    },
+    "artifacts": {"type": "array", "items": {"type": "string"}},
+    "exit_reason": {"type": ["string", "null"]}
+  }
+}

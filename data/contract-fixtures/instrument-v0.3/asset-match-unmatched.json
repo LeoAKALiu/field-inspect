@@ -1,0 +1,21 @@
+{
+  "match_id": "match-v03-0002",
+  "run_id": "run-v03-golden-1",
+  "localization_id": "loc-v03-0002",
+  "status": "unmatched",
+  "asset_id": null,
+  "candidate_asset_ids": [],
+  "rule_version": "registry_unique_v1",
+  "contract_version": "0.3",
+  "source_type": "simulation",
+  "provenance": {
+    "source": "simulation",
+    "status": "simulated"
+  },
+  "lineage": {
+    "source": "simulation",
+    "producer": "marker_proxy",
+    "producer_version": "apriltag_36h11_v1",
+    "derived_from": null
+  }
+}

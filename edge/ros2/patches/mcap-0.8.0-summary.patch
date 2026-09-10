@@ -1,0 +1,23 @@
+--- a/cpp/mcap/include/mcap/writer.inl
++++ b/cpp/mcap/include/mcap/writer.inl
+@@ -368,6 +368,8 @@
+     if (!options_.noRepeatedSchemas) {
+       // Write all schema records
+       for (const auto& schema : schemas_) {
+-        write(fileOutput, schema);
++        if (writtenSchemas_.find(schema.id) != writtenSchemas_.end()) {
++          write(fileOutput, schema);
++        }
+       }
+     }
+@@ -376,6 +378,9 @@
+     if (!options_.noRepeatedChannels) {
+       // Write all channel records
+       for (const auto& channel : channels_) {
+-        write(fileOutput, channel);
++        if (statistics_.channelMessageCounts.find(channel.id) !=
++            statistics_.channelMessageCounts.end()) {
++          write(fileOutput, channel);
++        }
+       }
+     }

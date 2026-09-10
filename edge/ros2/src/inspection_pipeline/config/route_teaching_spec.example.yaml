@@ -1,0 +1,9 @@
+schema_version: "1.0"
+route_id: commissioning-route-v1
+approved_max_linear_mps: 0.2
+stations:
+  - station_id: station-001
+    x_m: 1.0
+    y_m: 0.0
+    required: true
+    tag_ids: []

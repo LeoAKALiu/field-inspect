@@ -1,0 +1,4 @@
+export:
+  package_contract: '2.0'
+  customer_instrument_data: false
+  parse_mcap_on_server: false

@@ -1,0 +1,16 @@
+schema_version: "1.0"
+route_id: commissioning-route-v1
+source_kind: synthetic_contract_fixture
+frame_id: map
+verified: false
+verified_at: null
+source_reference: ""
+approved_max_linear_mps: 0.2
+poses:
+  - {x_m: 0.0, y_m: 0.0, yaw_rad: 0.0}
+  - {x_m: 1.0, y_m: 0.0, yaw_rad: 0.0}
+stations:
+  - station_id: station-001
+    pose_index: 1
+    required: true
+    tag_ids: []

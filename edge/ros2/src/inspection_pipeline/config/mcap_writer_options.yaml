@@ -1,0 +1,11 @@
+# zstd_fast supplies Fastest chunk compression; this override restores the
+# integrity CRC disabled by that preset while retaining an indexed MCAP.
+noChunking: false
+noChunkCRC: false
+noSummaryCRC: false
+noMessageIndex: false
+noSummary: false
+compression: "Zstd"
+compressionLevel: "Fastest"
+chunkSize: 1048576
+forceCompression: false

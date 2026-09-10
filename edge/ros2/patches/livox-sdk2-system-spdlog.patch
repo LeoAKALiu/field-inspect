@@ -1,0 +1,32 @@
+--- a/sdk_core/CMakeLists.txt
++++ b/sdk_core/CMakeLists.txt
+@@ -5,6 +5,10 @@
+ 
+ add_library(${SDK_LIBRARY_STATIC} STATIC "")
+ add_library(${SDK_LIBRARY_SHARED} SHARED "")
++
++find_package(spdlog REQUIRED)
++target_link_libraries(${SDK_LIBRARY_STATIC} PRIVATE spdlog::spdlog)
++target_link_libraries(${SDK_LIBRARY_SHARED} PRIVATE spdlog::spdlog)
+ 
+ set(LIVOX_SDK_MAJOR_VERSION "0")
+ set(LIVOX_SDK_MINOR_VERSION "0")
+@@ -42,7 +46,6 @@
+ 
+ set(LIVOX_PRIVATE_INCLUDE_DIR 
+         ../3rdparty 
+-        ../3rdparty/spdlog 
+         .
+         )
+ set(LIVOX_PUBLIC_INCLUDE_DIR 
+--- a/sdk_core/base/logging.cpp
++++ b/sdk_core/base/logging.cpp
+@@ -55,5 +55,6 @@
+ }
+ 
+ void UninitLogger() {
+-  spdlog::drop_all();
++  spdlog::drop("console");
++  logger.reset();
+ }
+\ No newline at end of file

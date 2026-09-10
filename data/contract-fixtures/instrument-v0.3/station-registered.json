@@ -1,0 +1,27 @@
+{
+  "station_id": "stn-001",
+  "scene_id": "scene-001",
+  "name": "1 号支巷离层仪观测站",
+  "target_pose": {
+    "x": 12.3,
+    "y": 1.4,
+    "z": 0.0
+  },
+  "target_heading_deg": 90.0,
+  "registered_instruments": [
+    "ast-delam-001"
+  ],
+  "description": null,
+  "contract_version": "0.3",
+  "source_type": "simulation",
+  "provenance": {
+    "source": "simulation",
+    "status": "simulated"
+  },
+  "lineage": {
+    "source": "simulation",
+    "producer": "marker_proxy",
+    "producer_version": "apriltag_36h11_v1",
+    "derived_from": null
+  }
+}

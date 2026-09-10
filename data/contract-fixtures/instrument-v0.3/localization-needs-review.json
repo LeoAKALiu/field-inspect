@@ -1,0 +1,26 @@
+{
+  "localization_id": "loc-v03-0003",
+  "run_id": "run-v03-golden-1",
+  "observation_id": "obs-v03-0002",
+  "status": "needs_review",
+  "position": {
+    "x": 40.02,
+    "y": 1.1,
+    "z": 0.0
+  },
+  "heading_deg": 271.3,
+  "method": "marker_pose_scene_transform",
+  "residual_m": 0.31,
+  "contract_version": "0.3",
+  "source_type": "simulation",
+  "provenance": {
+    "source": "simulation",
+    "status": "simulated"
+  },
+  "lineage": {
+    "source": "simulation",
+    "producer": "marker_proxy",
+    "producer_version": "apriltag_36h11_v1",
+    "derived_from": null
+  }
+}

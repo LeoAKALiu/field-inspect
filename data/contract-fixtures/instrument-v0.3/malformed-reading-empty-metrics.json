@@ -1,0 +1,21 @@
+{
+  "reading_id": "read-v03-0001",
+  "run_id": "run-v03-golden-1",
+  "asset_id": "ast-delam-001",
+  "captured_at": "2026-08-25T03:00:02.000Z",
+  "metrics": [],
+  "quality": "good",
+  "valid_until": "2026-12-31T00:00:00Z",
+  "contract_version": "0.3",
+  "source_type": "replay",
+  "provenance": {
+    "source": "replay",
+    "status": "pending_confirmation"
+  },
+  "lineage": {
+    "source": "replay",
+    "producer": "inspection_trajectory_export",
+    "producer_version": "1.0.0",
+    "derived_from": "run-v03-golden-1"
+  }
+}

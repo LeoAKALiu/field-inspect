@@ -1,0 +1,1135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://digital-twin.local/contracts/domain.schema.json",
+  "title": "DigitalTwinDomain",
+  "description": "地下工程巡检车数字孪生核心领域对象 v2（冻结）+ v0.3 领域扩展（增量），与 packages/contracts/src/domain.ts 完全一致。坐标系统一为 scene_local_yup（右手系，Y 轴向上，单位米）。字段级 x-provenance 标记数据出处：protocol_supported（甲方协议已支持，当前无）、pending_confirmation（业务需要但协议未确认）、simulated（原型虚构的演示数据）。v0.3 扩展为纯增量：仪器观测（InstrumentObservation）、仪器定位（InstrumentLocalization）、资产匹配（AssetMatch）、命名指标读数（InstrumentReading）、巡检站（InspectionStation）、站点尝试（StationAttempt）、运行结果溯源（InspectionRunOutcome）与逐对象数据血缘（DataLineage）。每个 v0.3 对象携带 contract_version: \"0.3\"，其他契约版本一律拒绝。marker_proxy 检测器明确不等于通用图像识别，其结果不构成已确认的客户设备 ID；契约不包含连续原始视频展示或上传。",
+  "type": "object",
+  "$defs": {
+    "SourceType": {
+      "type": "string",
+      "enum": ["simulation", "replay", "live_pending"],
+      "description": "三种数据来源。不存在“甲方真实数据已接入”状态。"
+    },
+    "Provenance": {
+      "type": "object",
+      "description": "数据出处。当前不存在 status=confirmed 的对象。",
+      "required": ["source", "status"],
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/SourceType",
+          "x-provenance": "protocol_supported"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["simulated", "pending_confirmation", "confirmed"],
+          "x-provenance": "protocol_supported",
+          "description": "数据可信度：simulated=模拟数据；pending_confirmation=待甲方确认；confirmed=甲方已确认（当前无）"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Position3D": {
+      "type": "object",
+      "description": "场景局部坐标（scene_local_yup，右手系，Y 轴向上，单位米）。",
+      "required": ["x", "y", "z"],
+      "properties": {
+        "x": { "type": "number", "x-provenance": "pending_confirmation" },
+        "y": { "type": "number", "x-provenance": "pending_confirmation" },
+        "z": { "type": "number", "x-provenance": "pending_confirmation" }
+      },
+      "additionalProperties": false
+    },
+    "Scene": {
+      "type": "object",
+      "required": ["id", "name", "status", "created_at", "source_type", "provenance"],
+      "properties": {
+        "id": { "type": "string", "x-provenance": "simulated" },
+        "name": { "type": "string", "x-provenance": "pending_confirmation" },
+        "description": { "type": "string", "x-provenance": "simulated" },
+        "status": { "type": "string", "enum": ["active", "archived"], "x-provenance": "simulated" },
+        "geometry_ref": {
+          "type": ["string", "null"],
+          "x-provenance": "pending_confirmation",
+          "description": "三维几何模型引用（BIM/GIS 格式待甲方确认）"
+        },
+        "bounds_min": { "$ref": "#/$defs/Position3D" },
+        "bounds_max": { "$ref": "#/$defs/Position3D" },
+        "length_m": { "type": "number", "x-provenance": "pending_confirmation", "description": "场景纵向长度（米）" },
+        "created_at": { "type": "string", "format": "date-time", "x-provenance": "simulated" },
+        "source_type": { "$ref": "#/$defs/SourceType" },
+        "provenance": { "$ref": "#/$defs/Provenance" }
+      },
+      "additionalProperties": false
+    },
+    "SceneVersion": {
+      "type": "object",
+      "required": [
+        "scene_version_id",
+        "scene_id",
+        "asset_sha256",
+        "navigation_default",
+        "alignment_id",
+        "evidence_sha256"
+      ],
+      "properties": {
+        "scene_version_id": { "type": "string", "x-provenance": "simulated" },
+        "scene_id": { "type": "string", "x-provenance": "simulated" },
+        "asset_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$", "x-provenance": "simulated" },
+        "navigation_default": { "type": "boolean", "x-provenance": "simulated" },
+        "alignment_id": { "type": ["string", "null"], "x-provenance": "simulated" },
+        "evidence_sha256": { "type": ["string", "null"], "x-provenance": "simulated" }
+      },
+      "additionalProperties": false
+    },
+    "AcceptanceSummary": {
+      "type": "object",
+      "required": [
+        "first_frame",
+        "last_frame",
+        "required_passed",
+        "required_total",
+        "auxiliary_failed"
+      ],
+      "properties": {
+        "first_frame": { "type": ["string", "null"], "enum": ["pass", "fail", null], "x-provenance": "simulated" },
+        "last_frame": { "type": ["string", "null"], "enum": ["pass", "fail", null], "x-provenance": "simulated" },
+        "required_passed": { "type": "integer", "minimum": 0, "x-provenance": "simulated" },
+        "required_total": { "type": "integer", "minimum": 0, "x-provenance": "simulated" },
+        "auxiliary_failed": { "type": "integer", "minimum": 0, "x-provenance": "simulated" }
+      },
+      "additionalProperties": false
+    },
+    "PatrolTask": {
+      "type": "object",
+      "required": [
+        "id",
+        "scene_id",
+        "name",
+        "mode",
+        "status",
+        "run_kind",
+        "package_status",
+        "acceptance_state",
+        "scene_version_id",
+        "alignment_id",
+        "has_pointcloud",
+        "acceptance_recorded_at",
+        "acceptance_summary",
+        "source_type",
+        "provenance"
+      ],
+      "properties": {
+        "id": { "type": "string", "x-provenance": "simulated" },
+        "scene_id": { "type": "string", "x-provenance": "simulated" },
+        "name": { "type": "string", "x-provenance": "simulated" },
+        "mode": { "$ref": "#/$defs/SourceType", "x-provenance": "protocol_supported" },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "running", "completed", "completed_with_exceptions", "aborted"],
+          "x-provenance": "simulated",
+          "description": "状态机：pending → running → completed | completed_with_exceptions | aborted。completed_with_exceptions 保持独立语义。"
+        },
+        "planned_start": { "type": ["string", "null"], "format": "date-time", "x-provenance": "simulated" },
+        "actual_start": { "type": ["string", "null"], "format": "date-time", "x-provenance": "simulated" },
+        "actual_end": { "type": ["string", "null"], "format": "date-time", "x-provenance": "simulated" },
+        "distance_m": { "type": ["number", "null"], "x-provenance": "simulated", "description": "累计里程（米）" },
+        "event_count": { "type": "integer", "minimum": 0, "x-provenance": "simulated" },
+        "run_kind": {
+          "type": "string",
+          "enum": ["demonstration", "recorded"],
+          "x-provenance": "simulated",
+          "description": "Demonstration Run 或 Recorded Run。导入成功不会写成现场已验收。"
+        },
+        "package_status": {
+          "type": ["string", "null"],
+          "enum": ["completed", "completed_with_exceptions", null],
+          "x-provenance": "simulated"
+        },
+        "acceptance_state": {
+          "type": "string",
+          "enum": ["not_applicable", "pending_acceptance", "accepted", "withdrawn"],
+          "x-provenance": "simulated"
+        },
+        "scene_version_id": { "type": ["string", "null"], "x-provenance": "simulated" },
+        "alignment_id": { "type": ["string", "null"], "x-provenance": "simulated" },
+        "has_pointcloud": { "type": "boolean", "x-provenance": "simulated" },
+        "acceptance_recorded_at": { "type": ["string", "null"], "format": "date-time", "x-provenance": "simulated" },
+        "acceptance_summary": {
+          "oneOf": [
+            { "$ref": "#/$defs/AcceptanceSummary" },
+            { "type": "null" }
+          ],
+          "x-provenance": "simulated"
+        },
+        "source_type": { "$ref": "#/$defs/SourceType" },
+        "provenance": { "$ref": "#/$defs/Provenance" }
+      },
+      "additionalProperties": false
+    },
+    "VehicleState": {
+      "type": "object",
+      "required": ["task_id", "timestamp", "position", "heading_deg", "speed_mps", "source_type", "provenance"],
+      "properties": {
+        "task_id": { "type": "string", "x-provenance": "simulated" },
+        "timestamp": { "type": "string", "format": "date-time", "x-provenance": "simulated" },
+        "position": { "$ref": "#/$defs/Position3D" },
+        "heading_deg": { "type": "number", "minimum": 0, "exclusiveMaximum": 360, "x-provenance": "pending_confirmation", "description": "航向角（度），[0, 360)，绕 +Y 轴" },
+        "speed_mps": { "type": "number", "minimum": 0, "x-provenance": "pending_confirmation" },
+        "battery_pct": { "type": ["number", "null"], "minimum": 0, "maximum": 100, "x-provenance": "pending_confirmation", "description": "电量百分比，车辆侧协议待确认" },
+        "source_type": { "$ref": "#/$defs/SourceType" },
+        "provenance": { "$ref": "#/$defs/Provenance" }
+      },
+      "additionalProperties": false
+    },
+    "TrajectoryPoint": {
+      "type": "object",
+      "description": "后端轨迹采样点（REST/WS 载荷），与 twin-viewer 的播放时刻采样不同。",
+      "required": ["task_id", "seq", "timestamp", "position", "source_type", "provenance"],
+      "properties": {
+        "task_id": { "type": "string", "x-provenance": "simulated" },
+        "seq": { "type": "integer", "minimum": 0, "x-provenance": "simulated", "description": "任务内单调递增序号" },
+        "timestamp": { "type": "string", "format": "date-time", "x-provenance": "simulated" },
+        "position": { "$ref": "#/$defs/Position3D" },
+        "heading_deg": { "type": ["number", "null"], "minimum": 0, "exclusiveMaximum": 360, "x-provenance": "pending_confirmation" },
+        "speed_mps": { "type": ["number", "null"], "minimum": 0, "x-provenance": "pending_confirmation" },
+        "source_type": { "$ref": "#/$defs/SourceType" },
+        "provenance": { "$ref": "#/$defs/Provenance" }
+      },
+      "additionalProperties": false
+    },
+    "DisplayTrajectory": {
+      "type": "object",
+      "description": "Deterministic Display Trajectory. Not original evidence and not a live 1,000,000-point render promise.",
+      "required": [
+        "algorithm",
+        "algorithm_version",
+        "source_point_count",
+        "display_point_count",
+        "kept_seq",
+        "landmark_seqs",
+        "disclaimer",
+        "points"
+      ],
+      "properties": {
+        "algorithm": { "type": "string", "x-provenance": "simulated" },
+        "algorithm_version": { "type": "string", "x-provenance": "simulated" },
+        "source_point_count": { "type": "integer", "minimum": 0, "x-provenance": "simulated" },
+        "display_point_count": { "type": "integer", "minimum": 0, "x-provenance": "simulated" },
+        "kept_seq": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 },
+          "x-provenance": "simulated"
+        },
+        "landmark_seqs": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" },
+          "x-provenance": "simulated"
+        },
+        "disclaimer": { "type": "string", "x-provenance": "simulated" },
+        "points": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/TrajectoryPoint" },
+          "x-provenance": "simulated"
+        }
+      },
+      "additionalProperties": false
+    },
+    "DetectionEvent": {
+      "type": "object",
+      "required": ["id", "scene_id", "task_id", "type", "severity", "status", "position", "detected_at", "source_type", "provenance"],
+      "properties": {
+        "id": { "type": "string", "x-provenance": "simulated" },
+        "scene_id": { "type": "string", "x-provenance": "simulated" },
+        "task_id": { "type": "string", "x-provenance": "simulated" },
+        "type": {
+          "type": "string",
+          "enum": ["crack", "water_leakage", "spalling", "corrosion", "equipment_fault", "obstacle"],
+          "x-provenance": "pending_confirmation",
+          "description": "异常类型枚举，最终以甲方检测算法输出为准"
+        },
+        "severity": { "type": "string", "enum": ["low", "medium", "high", "critical"], "x-provenance": "pending_confirmation" },
+        "status": {
+          "type": "string",
+          "enum": ["open", "acknowledged", "resolved", "false_positive"],
+          "x-provenance": "simulated",
+          "description": "复核状态机：open → acknowledged → resolved | false_positive。UI 语义映射：open=待复核，acknowledged=已确认，resolved=已闭环，false_positive=已排除。异常候选不等于已确认灾害。"
+        },
+        "position": { "$ref": "#/$defs/Position3D" },
+        "description": { "type": "string", "x-provenance": "simulated" },
+        "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1, "x-provenance": "simulated", "description": "检测置信度（模拟算法输出）" },
+        "image_ref": { "type": ["string", "null"], "x-provenance": "simulated", "description": "现场图片引用（原型为占位图）" },
+        "detected_at": { "type": "string", "format": "date-time", "x-provenance": "simulated" },
+        "handled_by": { "type": ["string", "null"], "x-provenance": "pending_confirmation", "description": "处置人，账号体系待确认" },
+        "handled_at": { "type": ["string", "null"], "format": "date-time", "x-provenance": "simulated" },
+        "handle_comment": { "type": ["string", "null"], "x-provenance": "simulated" },
+        "source_type": { "$ref": "#/$defs/SourceType" },
+        "provenance": { "$ref": "#/$defs/Provenance" }
+      },
+      "additionalProperties": false
+    },
+    "SensorDevice": {
+      "type": "object",
+      "required": ["id", "scene_id", "name", "type", "unit", "status", "source_type", "provenance"],
+      "properties": {
+        "id": { "type": "string", "x-provenance": "simulated" },
+        "scene_id": { "type": "string", "x-provenance": "simulated" },
+        "name": { "type": "string", "x-provenance": "simulated" },
+        "type": {
+          "type": "string",
+          "enum": ["delamination", "displacement", "convergence", "stress", "temperature", "humidity", "gas"],
+          "x-provenance": "pending_confirmation",
+          "description": "离层仪 delamination / 位移计 displacement / 收敛计 convergence / 应力计 stress 等；以甲方设备清单为准"
+        },
+        "unit": { "type": "string", "x-provenance": "pending_confirmation" },
+        "position": { "$ref": "#/$defs/Position3D" },
+        "status": { "type": "string", "enum": ["online", "offline"], "x-provenance": "simulated" },
+        "source_type": { "$ref": "#/$defs/SourceType" },
+        "provenance": { "$ref": "#/$defs/Provenance" }
+      },
+      "additionalProperties": false
+    },
+    "SensorReading": {
+      "type": "object",
+      "required": ["device_id", "timestamp", "value", "source_type", "provenance"],
+      "properties": {
+        "device_id": { "type": "string", "x-provenance": "simulated" },
+        "timestamp": { "type": "string", "format": "date-time", "x-provenance": "simulated" },
+        "value": { "type": "number", "x-provenance": "simulated" },
+        "quality": { "type": "string", "enum": ["good", "uncertain", "bad"], "x-provenance": "pending_confirmation", "description": "数据质量标记，待甲方确认" },
+        "source_type": { "$ref": "#/$defs/SourceType" },
+        "provenance": { "$ref": "#/$defs/Provenance" }
+      },
+      "additionalProperties": false
+    },
+    "SpatialBinding": {
+      "type": "object",
+      "required": ["id", "scene_id", "target_type", "target_id", "position", "source_type", "provenance"],
+      "properties": {
+        "id": { "type": "string", "x-provenance": "simulated" },
+        "scene_id": { "type": "string", "x-provenance": "simulated" },
+        "target_type": { "type": "string", "enum": ["sensor_device", "detection_event", "vehicle"], "x-provenance": "simulated" },
+        "target_id": { "type": "string", "x-provenance": "simulated" },
+        "position": { "$ref": "#/$defs/Position3D" },
+        "coordinate_system": { "type": "string", "x-provenance": "pending_confirmation", "description": "坐标系标识，固定 scene_local_yup；与甲方 GIS/BIM 对齐待确认" },
+        "source_type": { "$ref": "#/$defs/SourceType" },
+        "provenance": { "$ref": "#/$defs/Provenance" }
+      },
+      "additionalProperties": false
+    },
+    "DataSourceStatus": {
+      "type": "object",
+      "required": ["mode", "name", "status", "source_type", "provenance"],
+      "properties": {
+        "mode": { "$ref": "#/$defs/SourceType", "x-provenance": "protocol_supported" },
+        "name": { "type": "string", "x-provenance": "simulated" },
+        "status": {
+          "type": "string",
+          "enum": ["active", "standby", "reserved", "unavailable"],
+          "x-provenance": "simulated",
+          "description": "live_pending 源固定为 reserved（预留，未接入）"
+        },
+        "last_update": { "type": ["string", "null"], "format": "date-time", "x-provenance": "simulated" },
+        "message": { "type": ["string", "null"], "x-provenance": "simulated" },
+        "source_type": { "$ref": "#/$defs/SourceType" },
+        "provenance": { "$ref": "#/$defs/Provenance" }
+      },
+      "additionalProperties": false
+    },
+    "RouteProvenance": {
+      "type": "object",
+      "description": "巡检路线的独立数据血缘，用于区分点云算法估计与实测路线。",
+      "required": ["method", "algorithm_version", "source_asset", "source_sha256", "source_point_count", "generated_point_count", "status", "disclaimer"],
+      "properties": {
+        "method": { "type": "string", "const": "pointcloud_auto_corridor_centerline" },
+        "algorithm_version": { "type": "string" },
+        "source_asset": { "type": "string" },
+        "source_sha256": { "type": "string" },
+        "source_point_count": { "type": "integer", "minimum": 1 },
+        "generated_point_count": { "type": "integer", "minimum": 2 },
+        "status": { "type": "string", "enum": ["estimated", "measured"] },
+        "disclaimer": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "SceneMetadata": {
+      "type": "object",
+      "description": "场景元数据：三维资产引用、坐标系声明与巡检路线。前端车辆轨迹/路线不得写死在组件中，必须从此对象与 API 动态加载。",
+      "required": ["scene_id", "name", "coordinate_system", "units", "up_axis", "bounds_min", "bounds_max", "length_m", "route", "source_type", "provenance"],
+      "properties": {
+        "scene_id": { "type": "string", "x-provenance": "simulated" },
+        "name": { "type": "string", "x-provenance": "pending_confirmation" },
+        "coordinate_system": { "type": "string", "const": "scene_local_yup", "description": "固定 scene_local_yup：右手系，Y 轴向上" },
+        "units": { "type": "string", "const": "m", "description": "固定 m" },
+        "up_axis": { "type": "string", "const": "Y" },
+        "bounds_min": { "$ref": "#/$defs/Position3D" },
+        "bounds_max": { "$ref": "#/$defs/Position3D" },
+        "length_m": { "type": "number", "x-provenance": "pending_confirmation", "description": "场景纵向长度（米）" },
+        "mesh_url": { "type": ["string", "null"], "x-provenance": "simulated", "description": "三维网格模型 URL（相对站点根路径，离线可用）" },
+        "pointcloud_url": { "type": ["string", "null"], "x-provenance": "simulated", "description": "点云 URL（相对站点根路径，离线可用）" },
+        "route": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Position3D" },
+          "x-provenance": "simulated",
+          "description": "巡检路线有序路径点（车辆轨迹由此派生）"
+        },
+        "route_provenance": { "$ref": "#/$defs/RouteProvenance" },
+        "description": { "type": "string", "x-provenance": "simulated" },
+        "scene_version_id": { "type": ["string", "null"], "x-provenance": "simulated" },
+        "asset_sha256": { "type": ["string", "null"], "x-provenance": "simulated" },
+        "alignment_id": { "type": ["string", "null"], "x-provenance": "simulated" },
+        "source_type": { "$ref": "#/$defs/SourceType" },
+        "provenance": { "$ref": "#/$defs/Provenance" }
+      },
+      "additionalProperties": false
+    }
+,
+    "DataSourceKind": {
+      "type": "string",
+      "enum": ["synthetic_fixture", "simulation", "replay", "live_pending"],
+      "description": "v0.3 逐对象数据来源类别：synthetic_fixture=显式标记的开发/迁移夹具（永不宣称客户或现场数据）；simulation=模拟/演示数据；replay=已导入运行的历史回放数据；live_pending=甲方实时接口预留（当前恒不接入）"
+    },
+    "DataLineage": {
+      "type": "object",
+      "description": "v0.3 逐对象数据血缘：说明该对象由谁、以什么版本、从什么上游派生",
+      "required": ["source", "producer", "producer_version", "derived_from"],
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/DataSourceKind"
+        },
+        "producer": {
+          "type": ["string", "null"],
+          "description": "生成/采集该对象的检测器、算法或导出工具名；null 表示未登记"
+        },
+        "producer_version": {
+          "type": ["string", "null"],
+          "description": "producer 的版本；null 表示未登记"
+        },
+        "derived_from": {
+          "type": ["string", "null"],
+          "description": "上游来源引用（如黄金夹具文件名、导入的 run/package 引用）；只允许引用标识，不得携带客户数据内容、连续原始视频或原始 MCAP"
+        }
+      },
+      "additionalProperties": false
+    },
+    "InstrumentDetectorKind": {
+      "type": "string",
+      "const": "marker_proxy",
+      "description": "v0.3 仅包含 marker_proxy：以预登记基准标记（AprilTag 等）为代理的仪器观测检测器。marker_proxy 明确不等于通用图像识别，其输出不构成已确认的客户设备 ID，也不上传/展示连续原始视频"
+    },
+    "ImageRegion": {
+      "type": "object",
+      "description": "采集帧内的归一化图像区域（比例坐标，与分辨率解耦）。约束：0 ≤ x_min < x_max ≤ 1，0 ≤ y_min < y_max ≤ 1（跨字段不等式由边界模型校验）",
+      "required": ["x_min", "y_min", "x_max", "y_max", "image_width", "image_height"],
+      "properties": {
+        "x_min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "y_min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "x_max": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "y_max": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "image_width": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "采集帧像素宽度，用于审计与复现"
+        },
+        "image_height": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "采集帧像素高度"
+        }
+      },
+      "additionalProperties": false
+    },
+    "InstrumentDetector": {
+      "type": "object",
+      "description": "观测使用的检测器及其版本",
+      "required": ["kind", "version"],
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/InstrumentDetectorKind"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "检测器实现版本（如 'apriltag_36h11_v1'）"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ResolutionStatus": {
+      "type": "string",
+      "enum": ["matched", "unmatched", "needs_review"],
+      "description": "定位/匹配共用的三态结果：matched=已明确解析；unmatched=无法解析；needs_review=需人工复核。unmatched 与 needs_review 不产生已确认的客户设备 ID"
+    },
+    "InstrumentMetricName": {
+      "type": "string",
+      "enum": ["deep_base", "shallow_base", "delta"],
+      "description": "命名指标：深基点 deep_base / 浅基点 shallow_base / 差值 delta。离层仪读数由三个命名 metric 表达，不复用单一匿名 value 语义"
+    },
+    "NamedMetric": {
+      "type": "object",
+      "required": ["name", "value", "unit"],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/InstrumentMetricName"
+        },
+        "value": {
+          "type": "number",
+          "description": "指标值（有限数）"
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1,
+          "description": "计量单位（离层仪典型为 'mm'）"
+        }
+      },
+      "additionalProperties": false
+    },
+    "RunAbortReasonCode": {
+      "type": "string",
+      "enum": ["operator_abort", "safety_stop", "system_fault"],
+      "description": "中止原因码"
+    },
+    "RunAbort": {
+      "type": "object",
+      "required": ["reason_code", "detail"],
+      "properties": {
+        "reason_code": {
+          "$ref": "#/$defs/RunAbortReasonCode"
+        },
+        "detail": {
+          "type": ["string", "null"],
+          "description": "人工可读补充说明；不得包含客户数据内容"
+        }
+      },
+      "additionalProperties": false
+    },
+    "InspectionRunFinalStatus": {
+      "type": "string",
+      "enum": ["completed", "completed_with_exceptions", "aborted"],
+      "description": "运行终态。completed_with_exceptions 语义与包契约的带例外完成一致"
+    },
+    "StationAttemptResult": {
+      "type": "string",
+      "enum": ["success", "failed", "skipped"],
+      "description": "站点尝试结果；failed/skipped 必须携带明确原因"
+    },
+    "StationAttemptReasonCode": {
+      "type": "string",
+      "enum": ["observation_failed", "localization_unresolved", "asset_unmatched", "instrument_unavailable", "operator_skipped", "route_interrupted"],
+      "description": "尝试失败/跳过的原因码（显式、可追溯）"
+    },
+    "InstrumentObservation": {
+      "type": "object",
+      "description": "v0.3 仪器观测：车辆侧相机对注册仪器/基准标记的一次可追溯检测记录。稳定 ID 在运行内唯一且不可复用；观测本身不解释业务含义",
+      "required": ["observation_id", "run_id", "captured_at", "image_region", "detector", "confidence", "calibration_ref", "contract_version", "source_type", "provenance", "lineage"],
+      "properties": {
+        "observation_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "稳定观测 ID（运行内唯一，永不复用）"
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "所属巡检运行 ID（对应 PatrolTask.id / 包 run_id）"
+        },
+        "captured_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "采集时间（ISO 8601 UTC，采集时刻而非到达时刻）"
+        },
+        "image_region": {
+          "$ref": "#/$defs/ImageRegion"
+        },
+        "detector": {
+          "$ref": "#/$defs/InstrumentDetector"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "检测置信度 [0,1]"
+        },
+        "calibration_ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "标定引用：本次观测所依赖的相机标定/对齐证据标识（如 SHA-256 或版本 ID）"
+        },
+        "contract_version": {
+          "const": "0.3",
+          "description": "固定 '0.3'：其他契约版本一律拒绝"
+        },
+        "source_type": {
+          "$ref": "#/$defs/SourceType"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        },
+        "lineage": {
+          "$ref": "#/$defs/DataLineage"
+        }
+      },
+      "additionalProperties": false
+    },
+    "InstrumentLocalization": {
+      "type": "object",
+      "description": "v0.3 仪器定位：把一次仪器观测解析到 scene_local_yup 场景位姿。与资产匹配相互独立：定位成功不代表资产身份已确认",
+      "required": ["localization_id", "run_id", "observation_id", "status", "position", "heading_deg", "method", "residual_m", "contract_version", "source_type", "provenance", "lineage"],
+      "properties": {
+        "localization_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observation_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "被解析的仪器观测 ID"
+        },
+        "status": {
+          "$ref": "#/$defs/ResolutionStatus"
+        },
+        "position": {
+          "anyOf": [
+            {"$ref": "#/$defs/Position3D"},
+            {"type": "null"}
+          ],
+          "description": "scene_local_yup 位置；unmatched 时必须为 null"
+        },
+        "heading_deg": {
+          "type": ["number", "null"],
+          "description": "航向角（度），[0,360)；unmatched 时必须为 null"
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1,
+          "description": "解析方法标识（如 'marker_pose_scene_transform'）"
+        },
+        "residual_m": {
+          "type": ["number", "null"],
+          "description": "定位残差（米）；无法估计时为 null"
+        },
+        "contract_version": {
+          "const": "0.3",
+          "description": "固定 '0.3'：其他契约版本一律拒绝"
+        },
+        "source_type": {
+          "$ref": "#/$defs/SourceType"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        },
+        "lineage": {
+          "$ref": "#/$defs/DataLineage"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "matched"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "position": {
+                "type": "object"
+              },
+              "heading_deg": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "unmatched"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "position": {
+                "type": "null"
+              },
+              "heading_deg": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "AssetMatch": {
+      "type": "object",
+      "description": "v0.3 资产匹配：把一次仪器定位关联到场景登记的仪器资产 ID。matched 仅在登记资产唯一明确时成立；unmatched / needs_review 不产生任何已确认的客户设备 ID。与仪器定位是两个独立对象，可各自复核",
+      "required": ["match_id", "run_id", "localization_id", "status", "asset_id", "candidate_asset_ids", "rule_version", "contract_version", "source_type", "provenance", "lineage"],
+      "properties": {
+        "match_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "localization_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "被匹配的仪器定位 ID"
+        },
+        "status": {
+          "$ref": "#/$defs/ResolutionStatus"
+        },
+        "asset_id": {
+          "type": ["string", "null"],
+          "description": "已确认的登记资产 ID；仅 status === 'matched' 时非 null"
+        },
+        "candidate_asset_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "needs_review 时的候选资产 ID（≥1）；matched / unmatched 必须为空数组"
+        },
+        "rule_version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "匹配规则版本（可审计，如 'registry_unique_v1'）"
+        },
+        "contract_version": {
+          "const": "0.3",
+          "description": "固定 '0.3'：其他契约版本一律拒绝"
+        },
+        "source_type": {
+          "$ref": "#/$defs/SourceType"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        },
+        "lineage": {
+          "$ref": "#/$defs/DataLineage"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "matched"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "asset_id": {
+                "type": "string"
+              },
+              "candidate_asset_ids": {
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "unmatched"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "asset_id": {
+                "type": "null"
+              },
+              "candidate_asset_ids": {
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "needs_review"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "asset_id": {
+                "type": "null"
+              },
+              "candidate_asset_ids": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "InstrumentReading": {
+      "type": "object",
+      "description": "v0.3 仪器读数：某个已登记仪器资产在一个运行内的一组命名指标。valid_until 是审计有效期，过期读数不得作为当前状态展示；缺失读数必须保持显式缺失，不得用演示数据补齐",
+      "required": ["reading_id", "run_id", "asset_id", "captured_at", "metrics", "quality", "valid_until", "contract_version", "source_type", "provenance", "lineage"],
+      "properties": {
+        "reading_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "已登记仪器资产 ID（与 AssetMatch.asset_id 同一登记空间）"
+        },
+        "captured_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "metrics": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/NamedMetric"
+          },
+          "description": "命名指标集合（至少 1 项；同一 name 不得重复——由边界模型校验）"
+        },
+        "quality": {
+          "type": "string",
+          "enum": ["good", "uncertain", "bad"]
+        },
+        "valid_until": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "审计有效期（ISO 8601 UTC）；null 表示不适用"
+        },
+        "contract_version": {
+          "const": "0.3",
+          "description": "固定 '0.3'：其他契约版本一律拒绝"
+        },
+        "source_type": {
+          "$ref": "#/$defs/SourceType"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        },
+        "lineage": {
+          "$ref": "#/$defs/DataLineage"
+        }
+      },
+      "additionalProperties": false
+    },
+    "InspectionStation": {
+      "type": "object",
+      "description": "v0.3 巡检站：具有独立稳定 ID 的物理检查位置，带目标位姿与注册仪器。巡检站不等同于基准 Tag/AprilTag；标记只是车辆侧证据或对齐辅助",
+      "required": ["station_id", "scene_id", "name", "target_pose", "target_heading_deg", "registered_instruments", "contract_version", "source_type", "provenance", "lineage"],
+      "properties": {
+        "station_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "独立稳定站点 ID（不复用、不等同于 Tag ID）"
+        },
+        "scene_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_pose": {
+          "$ref": "#/$defs/Position3D",
+          "description": "scene_local_yup 目标停车位姿"
+        },
+        "target_heading_deg": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 360,
+          "description": "目标航向角（度），[0,360)"
+        },
+        "registered_instruments": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "注册仪器资产 ID 列表（允许为空；空表示本站无注册仪器）"
+        },
+        "description": {
+          "type": ["string", "null"]
+        },
+        "contract_version": {
+          "const": "0.3",
+          "description": "固定 '0.3'：其他契约版本一律拒绝"
+        },
+        "source_type": {
+          "$ref": "#/$defs/SourceType"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        },
+        "lineage": {
+          "$ref": "#/$defs/DataLineage"
+        }
+      },
+      "additionalProperties": false
+    },
+    "StationAttempt": {
+      "type": "object",
+      "description": "v0.3 一次站点尝试。同一运行内对同一站点的重试表现为多条记录，attempt_seq 单调递增（>1 即发生过 retry），可追溯",
+      "required": ["attempt_id", "run_id", "station_id", "attempt_seq", "started_at", "ended_at", "result", "reason_code", "reason_detail", "contract_version", "source_type", "provenance", "lineage"],
+      "properties": {
+        "attempt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "station_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "attempt_seq": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "运行内对该站点的尝试序号，从 1 开始单调递增"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ended_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "result": {
+          "$ref": "#/$defs/StationAttemptResult"
+        },
+        "reason_code": {
+          "type": ["string", "null"],
+          "description": "failed/skipped 必填（须为 StationAttemptReasonCode 之一）；success 必须为 null"
+        },
+        "reason_detail": {
+          "type": ["string", "null"],
+          "description": "人工可读补充说明；不得包含客户数据内容"
+        },
+        "contract_version": {
+          "const": "0.3",
+          "description": "固定 '0.3'：其他契约版本一律拒绝"
+        },
+        "source_type": {
+          "$ref": "#/$defs/SourceType"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        },
+        "lineage": {
+          "$ref": "#/$defs/DataLineage"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "result": {
+                "const": "success"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "reason_code": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "result": {
+                "enum": ["failed", "skipped"]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "reason_code": {
+                "$ref": "#/$defs/StationAttemptReasonCode"
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "InspectionRunOutcome": {
+      "type": "object",
+      "description": "v0.3 巡检运行结果溯源：以运行级终态 + 站点级 skip/retry 汇总表达可追溯结果。completed：无 skip、无 retry、无 abort；completed_with_exceptions：至少一个 skip 或 retry；aborted：必须携带 abort 原因。站点级明细见 StationAttempt 记录",
+      "required": ["run_id", "final_status", "skipped_station_ids", "retried_station_ids", "abort", "contract_version", "source_type", "provenance", "lineage"],
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "final_status": {
+          "$ref": "#/$defs/InspectionRunFinalStatus"
+        },
+        "skipped_station_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "被显式跳过的站点 ID"
+        },
+        "retried_station_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "发生过重试（attempt_seq > 1）的站点 ID"
+        },
+        "abort": {
+          "anyOf": [
+            {"$ref": "#/$defs/RunAbort"},
+            {"type": "null"}
+          ],
+          "description": "abort 原因；仅 final_status === 'aborted' 时非 null"
+        },
+        "contract_version": {
+          "const": "0.3",
+          "description": "固定 '0.3'：其他契约版本一律拒绝"
+        },
+        "source_type": {
+          "$ref": "#/$defs/SourceType"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        },
+        "lineage": {
+          "$ref": "#/$defs/DataLineage"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "final_status": {
+                "const": "completed"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "skipped_station_ids": {
+                "maxItems": 0
+              },
+              "retried_station_ids": {
+                "maxItems": 0
+              },
+              "abort": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "final_status": {
+                "const": "completed_with_exceptions"
+              }
+            }
+          },
+          "then": {
+            "anyOf": [
+              {
+                "properties": {
+                  "skipped_station_ids": {
+                    "minItems": 1
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "retried_station_ids": {
+                    "minItems": 1
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "final_status": {
+                "const": "aborted"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "abort": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "final_status": {
+                "enum": ["completed", "completed_with_exceptions"]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "abort": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,290 @@
+{
+  "sceneId": "liris-tunnel-sub2",
+  "name": "CNRS LIRIS Synthetic Tunnel (sub_2, no boundaries)",
+  "source": {
+    "dataset": "Synthetic Cave and Tunnel Systems",
+    "provider": "CNRS LIRIS",
+    "meshUrl": "https://dataset-dl.liris.cnrs.fr/synthetic-cave-and-tunnel-systems/Tunnel/tunnel_sub_2_no_boundaries_triangulation.obj",
+    "pointCloudUrl": "https://dataset-dl.liris.cnrs.fr/synthetic-cave-and-tunnel-systems/Tunnel/tunnel_sub_2_no_boundaries_point_cloud.ply",
+    "localMesh": "tunnel_mesh.obj",
+    "localPointCloud": "tunnel_pointcloud.ply",
+    "downloadedAt": "2026-08-07",
+    "sha256": {
+      "tunnel_mesh.obj": "183a058abba0ddb084752a6afd7a1c4f2c907ba9739244ce4f2388076cc3a186",
+      "tunnel_pointcloud.ply": "910ddbcd1e9f16f9cc99db195de8c8f277938305d1d83da4f7626c0390a5c6bc"
+    }
+  },
+  "license": {
+    "name": "ETALAB Open License 2.0",
+    "spdx": "etalab-2.0",
+    "url": "https://www.etalab.gouv.fr/wp-content/uploads/2017/04/ETALAB-Licence-Ouverte-v2.0.pdf",
+    "attribution": "© CNRS / LIRIS — Synthetic Cave and Tunnel Systems dataset. Redistributed under ETALAB Open License v2.0 with attribution."
+  },
+  "sourceCoordinateSystem": {
+    "handedness": "right",
+    "upAxis": "Z",
+    "units": "meters",
+    "description": "As exported from Blender (Z-up). Original OBJ/PLY files are never modified."
+  },
+  "viewerCoordinateSystem": {
+    "handedness": "right",
+    "upAxis": "Y",
+    "units": "meters",
+    "description": "Frontend convention: right-handed, Y-up, meters."
+  },
+  "units": "meters",
+  "upAxis": "Y",
+  "transformMatrix": [
+    1,
+    0,
+    0,
+    -1.5111695000000012,
+    0,
+    0,
+    1,
+    -0.4886075000000005,
+    0,
+    -1,
+    0,
+    37.651523999999995,
+    0,
+    0,
+    0,
+    1
+  ],
+  "transformMatrixLayout": "row-major-4x4",
+  "transformDescription": "viewerP = M * sourceP (homogeneous). Rotation maps Blender Z-up to Y-up: (x,y,z)->(x,z,-y), then translates bbox center to origin.",
+  "boundingBox": {
+    "min": {
+      "x": -120.1896,
+      "y": -34.261,
+      "z": -71.9806
+    },
+    "max": {
+      "x": 120.1896,
+      "y": 34.261,
+      "z": 71.9806
+    }
+  },
+  "center": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+  "recommendedCamera": {
+    "position": {
+      "x": 71.391,
+      "y": 55.526,
+      "z": 87.256
+    },
+    "target": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "up": {
+      "x": 0,
+      "y": 1,
+      "z": 0
+    },
+    "fov": 50
+  },
+  "recommendedNearFar": {
+    "near": 0.577,
+    "far": 1153.8
+  },
+  "recommendedRoute": [
+    {
+      "x": -92.188,
+      "y": 23.275,
+      "z": 23.557
+    },
+    {
+      "x": -84.27,
+      "y": 21.936,
+      "z": 19.707
+    },
+    {
+      "x": -77.558,
+      "y": 21.59,
+      "z": 15.635
+    },
+    {
+      "x": -70.776,
+      "y": 21.148,
+      "z": 11.664
+    },
+    {
+      "x": -63.969,
+      "y": 20.63,
+      "z": 7.729
+    },
+    {
+      "x": -57.162,
+      "y": 20.026,
+      "z": 3.793
+    },
+    {
+      "x": -50.364,
+      "y": 19.299,
+      "z": -0.156
+    },
+    {
+      "x": -43.571,
+      "y": 18.396,
+      "z": -4.111
+    },
+    {
+      "x": -36.772,
+      "y": 17.284,
+      "z": -8.058
+    },
+    {
+      "x": -29.965,
+      "y": 15.992,
+      "z": -11.993
+    },
+    {
+      "x": -23.157,
+      "y": 14.633,
+      "z": -15.927
+    },
+    {
+      "x": -16.35,
+      "y": 13.307,
+      "z": -19.864
+    },
+    {
+      "x": -9.548,
+      "y": 12.061,
+      "z": -23.806
+    },
+    {
+      "x": -2.741,
+      "y": 10.864,
+      "z": -27.742
+    },
+    {
+      "x": 4.068,
+      "y": 9.675,
+      "z": -31.675
+    },
+    {
+      "x": 10.881,
+      "y": 8.472,
+      "z": -35.602
+    },
+    {
+      "x": 17.708,
+      "y": 7.252,
+      "z": -39.509
+    },
+    {
+      "x": 24.59,
+      "y": 6.035,
+      "z": -43.337
+    },
+    {
+      "x": 31.564,
+      "y": 4.819,
+      "z": -47.034
+    },
+    {
+      "x": 38.595,
+      "y": 3.605,
+      "z": -50.65
+    }
+  ],
+  "recommendedDeviceAnchors": [
+    {
+      "id": "derived-anchor-01",
+      "label": "Point-cloud-aligned demo anchor 1",
+      "position": {
+        "x": -83.994,
+        "y": 23.593,
+        "z": 13.925
+      },
+      "note": "Simulated device anchor aligned to the estimated route; not a real sensor."
+    },
+    {
+      "id": "derived-anchor-02",
+      "label": "Point-cloud-aligned demo anchor 2",
+      "position": {
+        "x": -63.428,
+        "y": 22.572,
+        "z": 12.961
+      },
+      "note": "Simulated device anchor aligned to the estimated route; not a real sensor."
+    },
+    {
+      "id": "derived-anchor-03",
+      "label": "Point-cloud-aligned demo anchor 3",
+      "position": {
+        "x": -52.537,
+        "y": 21.067,
+        "z": -4.445
+      },
+      "note": "Simulated device anchor aligned to the estimated route; not a real sensor."
+    },
+    {
+      "id": "derived-anchor-04",
+      "label": "Point-cloud-aligned demo anchor 4",
+      "position": {
+        "x": -30.813,
+        "y": 18.409,
+        "z": -5.958
+      },
+      "note": "Simulated device anchor aligned to the estimated route; not a real sensor."
+    },
+    {
+      "id": "derived-anchor-05",
+      "label": "Point-cloud-aligned demo anchor 5",
+      "position": {
+        "x": -18.773,
+        "y": 15.111,
+        "z": -24.008
+      },
+      "note": "Simulated device anchor aligned to the estimated route; not a real sensor."
+    },
+    {
+      "id": "derived-anchor-06",
+      "label": "Point-cloud-aligned demo anchor 6",
+      "position": {
+        "x": 1.612,
+        "y": 12.323,
+        "z": -24.714
+      },
+      "note": "Simulated device anchor aligned to the estimated route; not a real sensor."
+    },
+    {
+      "id": "derived-anchor-07",
+      "label": "Point-cloud-aligned demo anchor 7",
+      "position": {
+        "x": 12.433,
+        "y": 9.569,
+        "z": -42.02
+      },
+      "note": "Simulated device anchor aligned to the estimated route; not a real sensor."
+    },
+    {
+      "id": "derived-anchor-08",
+      "label": "Point-cloud-aligned demo anchor 8",
+      "position": {
+        "x": 32.843,
+        "y": 6.788,
+        "z": -42.279
+      },
+      "note": "Simulated device anchor aligned to the estimated route; not a real sensor."
+    }
+  ],
+  "routeGeneration": {
+    "method": "pointcloud_auto_corridor_centerline",
+    "algorithmVersion": "2.0.0",
+    "sourceAsset": "tunnel_pointcloud.ply",
+    "sourceSha256": "910ddbcd1e9f16f9cc99db195de8c8f277938305d1d83da4f7626c0390a5c6bc",
+    "sourcePointCount": 162594,
+    "generatedPointCount": 20,
+    "status": "estimated",
+    "disclaimer": "点云自动主廊道横断面算法估计，非可通行规划、非实测路线；投用前须用甲方 GIS/BIM 与现场验线确认"
+  }
+}

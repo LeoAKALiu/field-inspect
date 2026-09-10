@@ -1,0 +1,17 @@
+repositories:
+  third_party/scout_ros2:
+    type: git
+    url: https://github.com/agilexrobotics/scout_ros2.git
+    version: humble
+  third_party/ugv_sdk:
+    type: git
+    url: https://github.com/agilexrobotics/ugv_sdk.git
+    version: main
+  livox_ros_driver2:
+    type: git
+    url: https://github.com/Livox-SDK/livox_ros_driver2.git
+    version: 1.2.6
+  third_party/FAST_LIO:
+    type: git
+    url: https://github.com/hku-mars/FAST_LIO.git
+    version: ROS2

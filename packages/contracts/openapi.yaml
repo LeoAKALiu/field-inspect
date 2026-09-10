@@ -1,0 +1,459 @@
+openapi: 3.1.0
+info:
+  title: 地下工程巡检车数字孪生原型 API
+  version: 0.5.0
+  description: |
+    离线数字孪生原型后端。SCOUT 巡检在车端完全离线，结束后通过 U 盘把 RFC 8493
+    BagIt 包复制到服务器 inbox，再由本地导入接口物化为 replay；不存在车辆实时上传链路。
+    数据模式：simulation（模拟）、replay（历史回放）、live_pending（甲方接口预留，不虚构）。
+    对象 Schema 引用 domain.schema.json；字段级数据出处见各属性的 x-provenance 标记。
+    坐标系统一 scene_local_yup（右手系，Y 轴向上，单位米）。时间一律 ISO 8601 UTC。错误统一为 ErrorResponse。
+    v0.3 领域扩展（contract_version "0.3"）以组件 Schema 形式发布：仪器观测、仪器定位、
+    资产匹配、命名指标读数、巡检站、站点尝试与运行结果溯源；定义见 domain.schema.json 的
+    InstrumentObservation / InstrumentLocalization / AssetMatch / InstrumentReading /
+    InspectionStation / StationAttempt / InspectionRunOutcome。marker_proxy 检测器明确
+    不等于通用图像识别，unmatched/needs_review 不产生已确认的客户设备 ID；契约不包含
+    连续原始视频展示或上传。对应 REST 端点随 scout_mini_ws#6/#7 的接入另行发布。
+    Formal Inspection Package v2 is the only production handoff contract. Digital Twin
+    does not parse MCAP, does not promise point-cloud rendering, does not receive
+    customer instrument data, and does not provide an online upload endpoint.
+servers:
+  - url: http://localhost:8000/api
+tags:
+  - name: scenes
+  - name: tasks
+  - name: events
+  - name: devices
+  - name: data-sources
+  - name: live
+  - name: imports
+  - name: system
+  - name: inspection-packages
+    description: |
+      Formal Inspection Package v2 is transferred by removable media as a complete
+      RFC 8493 BagIt 1.0 directory. This API does not accept network file uploads.
+paths:
+  /health:
+    get:
+      tags: [system]
+      summary: 健康检查
+      operationId: getHealth
+      responses:
+        '200':
+          description: 服务正常
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, version]
+                properties:
+                  status: { type: string, enum: [ok] }
+                  version: { type: string }
+  /scenes:
+    get:
+      tags: [scenes]
+      summary: 场景列表
+      operationId: listScenes
+      responses:
+        '200':
+          description: 场景数组
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: './domain.schema.json#/$defs/Scene' }
+  /scenes/{scene_id}:
+    get:
+      tags: [scenes]
+      summary: 场景详情（含空间绑定）
+      operationId: getScene
+      parameters:
+        - $ref: '#/components/parameters/SceneId'
+      responses:
+        '200':
+          description: 场景详情
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: './domain.schema.json#/$defs/Scene'
+                  - type: object
+                    properties:
+                      spatial_bindings:
+                        type: array
+                        items: { $ref: './domain.schema.json#/$defs/SpatialBinding' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /scenes/{scene_id}/metadata:
+    get:
+      tags: [scenes]
+      summary: 场景元数据（三维资产引用、坐标系声明与巡检路线）
+      operationId: getSceneMetadata
+      parameters:
+        - $ref: '#/components/parameters/SceneId'
+        - {
+            name: scene_version_id,
+            in: query,
+            schema: { type: string },
+            description: 绑定到指定 Scene Version；省略时使用该场景当前 navigation_default 版本（若有）
+          }
+      description: |
+        前端车辆轨迹/路线不得写死在组件中，必须从此接口动态加载。
+        历史 Recorded Run 必须带上导入时的 scene_version_id，不得静默改绑到最新场景。
+      responses:
+        '200':
+          description: 场景元数据
+          content:
+            application/json:
+              schema: { $ref: './domain.schema.json#/$defs/SceneMetadata' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /scene-versions/{scene_version_id}:
+    get:
+      tags: [scenes]
+      summary: Scene Version 身份（历史运行绑定）
+      operationId: getSceneVersion
+      parameters:
+        - name: scene_version_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Scene Version
+          content:
+            application/json:
+              schema: { $ref: './domain.schema.json#/$defs/SceneVersion' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /tasks:
+    get:
+      tags: [tasks]
+      summary: 巡检任务列表
+      operationId: listTasks
+      parameters:
+        - { name: scene_id, in: query, schema: { type: string } }
+        - { name: status, in: query, schema: { type: string, enum: [pending, running, completed, completed_with_exceptions, aborted] } }
+        - { name: mode, in: query, schema: { type: string, enum: [simulation, replay, live_pending] } }
+        - { name: run_kind, in: query, schema: { type: string, enum: [demonstration, recorded] } }
+      responses:
+        '200':
+          description: 任务数组（按 actual_end、否则 planned_start 倒序）
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: './domain.schema.json#/$defs/PatrolTask' }
+  /tasks/{task_id}:
+    get:
+      tags: [tasks]
+      summary: 任务详情
+      operationId: getTask
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: 任务详情
+          content:
+            application/json:
+              schema: { $ref: './domain.schema.json#/$defs/PatrolTask' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /tasks/{task_id}/trajectory:
+    get:
+      tags: [tasks]
+      summary: 任务轨迹（回放数据源，批量获取）
+      operationId: getTaskTrajectory
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+        - { name: from_seq, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 1000000, default: 10000 } }
+      responses:
+        '200':
+          description: 轨迹点数组（按 seq 升序）
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: './domain.schema.json#/$defs/TrajectoryPoint' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /tasks/{task_id}/display-trajectory:
+    get:
+      tags: [tasks]
+      summary: Display Trajectory（仅用于绘图的确定性降采样）
+      description: |
+        从完整 Replay Trajectory 派生。保留首点、末点和全部验收地标。
+        不是原始证据，也不是浏览器实时渲染 1,000,000 点的承诺。
+        回放时间轴、跳转和验收仍使用完整 Replay Trajectory。
+      operationId: getTaskDisplayTrajectory
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Display Trajectory
+          content:
+            application/json:
+              schema: { $ref: './domain.schema.json#/$defs/DisplayTrajectory' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /events:
+    get:
+      tags: [events]
+      summary: 异常事件查询
+      operationId: listEvents
+      parameters:
+        - { name: scene_id, in: query, schema: { type: string } }
+        - { name: task_id, in: query, schema: { type: string } }
+        - { name: status, in: query, schema: { type: string, enum: [open, acknowledged, resolved, false_positive] } }
+        - { name: severity, in: query, schema: { type: string, enum: [low, medium, high, critical] } }
+        - { name: type, in: query, schema: { type: string, enum: [crack, water_leakage, spalling, corrosion, equipment_fault, obstacle] } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 1000, default: 100 } }
+        - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+      responses:
+        '200':
+          description: 事件数组（按检测时间倒序）
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: './domain.schema.json#/$defs/DetectionEvent' }
+  /events/export:
+    post:
+      tags: [events]
+      summary: 事件导出（CSV 或 JSON）
+      operationId: exportEvents
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EventExportRequest' }
+      responses:
+        '200':
+          description: 导出文件（按请求 format 返回 text/csv 或 application/json）
+          content:
+            text/csv:
+              schema: { type: string }
+            application/json:
+              schema:
+                type: array
+                items: { $ref: './domain.schema.json#/$defs/DetectionEvent' }
+  /events/{event_id}:
+    get:
+      tags: [events]
+      summary: 事件详情
+      operationId: getEvent
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: 事件详情
+          content:
+            application/json:
+              schema: { $ref: './domain.schema.json#/$defs/DetectionEvent' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [events]
+      summary: 修改事件复核状态
+      description: 状态机 open → acknowledged → resolved | false_positive；非法迁移返回 409。
+      operationId: updateEventStatus
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EventStatusUpdate' }
+      responses:
+        '200':
+          description: 更新后的事件
+          content:
+            application/json:
+              schema: { $ref: './domain.schema.json#/$defs/DetectionEvent' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /devices:
+    get:
+      tags: [devices]
+      summary: 传感器设备列表
+      operationId: listDevices
+      parameters:
+        - { name: scene_id, in: query, schema: { type: string } }
+        - { name: type, in: query, schema: { type: string, enum: [delamination, displacement, convergence, stress, temperature, humidity, gas] } }
+      responses:
+        '200':
+          description: 设备数组
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: './domain.schema.json#/$defs/SensorDevice' }
+  /devices/{device_id}/readings:
+    get:
+      tags: [devices]
+      summary: 设备模拟读数曲线
+      description: 确定性生成（正弦+定种子噪声）：相同参数必得相同结果。读数均为 simulated。
+      operationId: getDeviceReadings
+      parameters:
+        - { name: device_id, in: path, required: true, schema: { type: string } }
+        - { name: from, in: query, schema: { type: string, format: date-time }, description: "缺省为 to 前 1 小时" }
+        - { name: to, in: query, schema: { type: string, format: date-time }, description: 缺省为当前时间 }
+        - { name: interval_sec, in: query, schema: { type: integer, minimum: 1, maximum: 3600, default: 60 } }
+      responses:
+        '200':
+          description: 读数数组（按时间升序）
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: './domain.schema.json#/$defs/SensorReading' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /data-sources:
+    get:
+      tags: [data-sources]
+      summary: 数据来源状态（simulation / replay / live_pending）
+      operationId: listDataSources
+      responses:
+        '200':
+          description: 三种数据模式的状态数组。live_pending 固定为 reserved（预留，未接入）。
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: './domain.schema.json#/$defs/DataSourceStatus' }
+  /live/ingest:
+    post:
+      tags: [live]
+      summary: 甲方实时数据接入（live_pending，预留）
+      description: |
+        接口信封已定义，服务端恒返回 501。对应数据模式 live_pending：预留待接入，
+        待甲方协议确认后启用，不虚构真实接入。
+      operationId: ingestLive
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LiveIngestEnvelope' }
+      responses:
+        '501':
+          description: 预留接口，尚未启用
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+  /imports:
+    get:
+      tags: [imports]
+      summary: 已导入离线巡检包只读台账
+      description: |
+        不返回归档路径。导入只能通过服务器本机 CLI（python -m app.cli import-package）。
+        公共 HTTP 不能触发导入，也不是在线上传入口。
+      operationId: listRunBundleImports
+      responses:
+        '200':
+          description: 按导入时间倒序排列的安全状态投影
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [run_id, bundle_sha256, schema_version, source_kind, imported_at]
+                  properties:
+                    run_id: { type: string }
+                    bundle_sha256: { type: string }
+                    schema_version: { type: string }
+                    source_kind: { type: string }
+                    imported_at: { type: string, format: date-time }
+                    package_status:
+                      type: string
+                      nullable: true
+                      enum: [completed, completed_with_exceptions]
+                    run_kind:
+                      type: string
+                      nullable: true
+                      enum: [demonstration, recorded]
+                    acceptance_state:
+                      type: string
+                      nullable: true
+                      enum: [not_applicable, pending_acceptance, accepted, withdrawn]
+                    scene_version_id: { type: string, nullable: true }
+                    alignment_id: { type: string, nullable: true }
+components:
+  parameters:
+    SceneId: { name: scene_id, in: path, required: true, schema: { type: string } }
+    TaskId: { name: task_id, in: path, required: true, schema: { type: string } }
+    EventId: { name: event_id, in: path, required: true, schema: { type: string } }
+    BundleName: { name: bundle_name, in: path, required: true, schema: { type: string, minLength: 1 } }
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object }
+    EventStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [acknowledged, resolved, false_positive]
+          x-provenance: simulated
+        comment: { type: string, x-provenance: simulated }
+        handled_by: { type: string, x-provenance: pending_confirmation, description: 处置人，账号体系待确认 }
+    EventExportRequest:
+      type: object
+      required: [format]
+      properties:
+        format: { type: string, enum: [csv, json] }
+        scene_id: { type: string }
+        task_id: { type: string }
+        status: { type: string, enum: [open, acknowledged, resolved, false_positive] }
+        severity: { type: string, enum: [low, medium, high, critical] }
+        type: { type: string, enum: [crack, water_leakage, spalling, corrosion, equipment_fault, obstacle] }
+    InspectionPackageManifest:
+      $ref: './inspection-package-v2.schema.json#/$defs/Manifest'
+    InspectionPackageTrajectory:
+      $ref: './inspection-package-v2.schema.json#/$defs/Trajectory'
+    InspectionPackageAcceptanceEvidence:
+      $ref: './inspection-package-v2.schema.json#/$defs/AcceptanceEvidence'
+    InstrumentObservation:
+      $ref: './domain.schema.json#/$defs/InstrumentObservation'
+    InstrumentLocalization:
+      $ref: './domain.schema.json#/$defs/InstrumentLocalization'
+    AssetMatch:
+      $ref: './domain.schema.json#/$defs/AssetMatch'
+    InstrumentReading:
+      $ref: './domain.schema.json#/$defs/InstrumentReading'
+    InspectionStation:
+      $ref: './domain.schema.json#/$defs/InspectionStation'
+    StationAttempt:
+      $ref: './domain.schema.json#/$defs/StationAttempt'
+    InspectionRunOutcome:
+      $ref: './domain.schema.json#/$defs/InspectionRunOutcome'
+    LiveIngestEnvelope:
+      type: object
+      description: 预留报文信封。字段映射待甲方协议确认（整体 pending_confirmation）。
+      required: [source_id, timestamp, payload]
+      properties:
+        source_id: { type: string, x-provenance: pending_confirmation }
+        timestamp: { type: string, format: date-time, x-provenance: pending_confirmation }
+        payload:
+          type: object
+          x-provenance: pending_confirmation
+          description: 原始报文，结构待甲方协议定义
+  responses:
+    BadRequest:
+      description: 巡检包格式、校验和或语义无效
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    NotFound:
+      description: 资源不存在
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Conflict:
+      description: 状态或稳定标识内容冲突
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }

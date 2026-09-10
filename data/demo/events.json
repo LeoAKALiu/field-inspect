@@ -1,0 +1,102 @@
+[
+  {
+    "id": "evt-0001",
+    "scene_id": "scene-001",
+    "task_id": "task-replay-001",
+    "type": "crack",
+    "severity": "high",
+    "status": "open",
+    "position": {
+      "x": -73.701,
+      "y": 21.967,
+      "z": 7.352
+    },
+    "description": "边墙纵向裂缝，长约 1.8m，宽约 2.1mm",
+    "confidence": 0.87,
+    "image_ref": "images/evt-0001.jpg",
+    "detected_at": "2026-08-01T09:00:22Z",
+    "handled_by": null,
+    "handled_at": null,
+    "handle_comment": null
+  },
+  {
+    "id": "evt-0002",
+    "scene_id": "scene-001",
+    "task_id": "task-replay-001",
+    "type": "water_leakage",
+    "severity": "critical",
+    "status": "acknowledged",
+    "position": {
+      "x": -42.293,
+      "y": 19.374,
+      "z": 1.162
+    },
+    "description": "拱顶渗水，目测成线状流淌",
+    "confidence": 0.93,
+    "image_ref": "images/evt-0002.jpg",
+    "detected_at": "2026-08-01T09:00:37Z",
+    "handled_by": "operator-chen",
+    "handled_at": "2026-08-01T10:05:00Z",
+    "handle_comment": "已通知养护班组现场确认"
+  },
+  {
+    "id": "evt-0003",
+    "scene_id": "scene-001",
+    "task_id": "task-replay-001",
+    "type": "spalling",
+    "severity": "medium",
+    "status": "resolved",
+    "position": {
+      "x": -21.564,
+      "y": 14.616,
+      "z": -22.855
+    },
+    "description": "衬砌局部剥落，面积约 0.3 平方米",
+    "confidence": 0.76,
+    "image_ref": "images/evt-0003.jpg",
+    "detected_at": "2026-08-01T09:00:55Z",
+    "handled_by": "operator-chen",
+    "handled_at": "2026-08-01T10:15:00Z",
+    "handle_comment": "已现场复核并完成修补"
+  },
+  {
+    "id": "evt-0004",
+    "scene_id": "scene-001",
+    "task_id": "task-replay-001",
+    "type": "corrosion",
+    "severity": "low",
+    "status": "false_positive",
+    "position": {
+      "x": 8.307,
+      "y": 10.185,
+      "z": -28.117
+    },
+    "description": "疑似钢拱架锈蚀",
+    "confidence": 0.52,
+    "image_ref": null,
+    "detected_at": "2026-08-01T09:01:14Z",
+    "handled_by": "operator-chen",
+    "handled_at": "2026-08-01T10:20:00Z",
+    "handle_comment": "复核为表面污渍，标记误报"
+  },
+  {
+    "id": "evt-0007",
+    "scene_id": "scene-001",
+    "task_id": "task-sim-001",
+    "type": "obstacle",
+    "severity": "low",
+    "status": "open",
+    "position": {
+      "x": 22.857,
+      "y": 6.712,
+      "z": -48.304
+    },
+    "description": "模拟巡检发现的检修道散落碎石堆",
+    "confidence": 0.61,
+    "image_ref": null,
+    "detected_at": "2026-08-05T10:05:00Z",
+    "handled_by": null,
+    "handled_at": null,
+    "handle_comment": null
+  }
+]

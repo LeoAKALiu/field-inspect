@@ -1,0 +1,140 @@
+[
+  {
+    "scene_id": "scene-001",
+    "name": "庙岭隧道 K12+300—K12+900 段",
+    "coordinate_system": "scene_local_yup",
+    "units": "m",
+    "up_axis": "Y",
+    "bounds_min": {
+      "x": -120.1896,
+      "y": -34.261,
+      "z": -71.9806
+    },
+    "bounds_max": {
+      "x": 120.1896,
+      "y": 34.261,
+      "z": 71.9806
+    },
+    "length_m": 152,
+    "mesh_url": "/tunnel/liris/tunnel_mesh.obj",
+    "pointcloud_url": "/tunnel/liris/tunnel_pointcloud.ply",
+    "route": [
+      {
+        "x": -92.188,
+        "y": 23.275,
+        "z": 23.557
+      },
+      {
+        "x": -84.27,
+        "y": 21.936,
+        "z": 19.707
+      },
+      {
+        "x": -77.558,
+        "y": 21.59,
+        "z": 15.635
+      },
+      {
+        "x": -70.776,
+        "y": 21.148,
+        "z": 11.664
+      },
+      {
+        "x": -63.969,
+        "y": 20.63,
+        "z": 7.729
+      },
+      {
+        "x": -57.162,
+        "y": 20.026,
+        "z": 3.793
+      },
+      {
+        "x": -50.364,
+        "y": 19.299,
+        "z": -0.156
+      },
+      {
+        "x": -43.571,
+        "y": 18.396,
+        "z": -4.111
+      },
+      {
+        "x": -36.772,
+        "y": 17.284,
+        "z": -8.058
+      },
+      {
+        "x": -29.965,
+        "y": 15.992,
+        "z": -11.993
+      },
+      {
+        "x": -23.157,
+        "y": 14.633,
+        "z": -15.927
+      },
+      {
+        "x": -16.35,
+        "y": 13.307,
+        "z": -19.864
+      },
+      {
+        "x": -9.548,
+        "y": 12.061,
+        "z": -23.806
+      },
+      {
+        "x": -2.741,
+        "y": 10.864,
+        "z": -27.742
+      },
+      {
+        "x": 4.068,
+        "y": 9.675,
+        "z": -31.675
+      },
+      {
+        "x": 10.881,
+        "y": 8.472,
+        "z": -35.602
+      },
+      {
+        "x": 17.708,
+        "y": 7.252,
+        "z": -39.509
+      },
+      {
+        "x": 24.59,
+        "y": 6.035,
+        "z": -43.337
+      },
+      {
+        "x": 31.564,
+        "y": 4.819,
+        "z": -47.034
+      },
+      {
+        "x": 38.595,
+        "y": 3.605,
+        "z": -50.65
+      }
+    ],
+    "description": "CNRS LIRIS Synthetic Tunnel (sub_2)；几何来自公开 OBJ/PLY，巡检路线由 PLY 自动主廊道横断面估计；业务对象为模拟数据",
+    "source_type": "simulation",
+    "provenance": {
+      "source": "simulation",
+      "status": "simulated"
+    },
+    "route_provenance": {
+      "method": "pointcloud_auto_corridor_centerline",
+      "algorithm_version": "2.0.0",
+      "source_asset": "tunnel_pointcloud.ply",
+      "source_sha256": "910ddbcd1e9f16f9cc99db195de8c8f277938305d1d83da4f7626c0390a5c6bc",
+      "source_point_count": 162594,
+      "generated_point_count": 20,
+      "status": "estimated",
+      "disclaimer": "点云自动主廊道横断面算法估计，非可通行规划、非实测路线；投用前须用甲方 GIS/BIM 与现场验线确认"
+    }
+  }
+]

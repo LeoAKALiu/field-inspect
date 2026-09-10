@@ -1,0 +1,12 @@
+# Keep the container build context small; the image only needs docker/.
+.git
+.github
+build/
+install/
+log/
+docs/
+scripts/
+deploy/
+src/
+third_party.repos
+*.md

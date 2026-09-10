@@ -1,0 +1,1010 @@
+{
+  "schema_version": "2.0",
+  "source_kind": "inspection_run",
+  "run_id": "golden-run-v2-completed",
+  "package_sha256": "abf94b2db2153683054138860860770c909d68a943c65aad325d617e9d1f13d3",
+  "name": "Formal Inspection Package v2 golden fixture",
+  "status": "completed",
+  "exceptions": [],
+  "started_at": "2026-08-24T02:00:00Z",
+  "ended_at": "2026-08-24T02:00:10Z",
+  "coordinate_system": "scene_local_yup",
+  "scene_version": {
+    "scene_id": "scene-001",
+    "scene_version_id": "scene-001-v1",
+    "asset_sha256": "f4cbcf538e84239400d013283deec074a99a57c40888c710b625424747ea2c3b"
+  },
+  "alignment": {
+    "alignment_id": "alignment-scene-001-v1",
+    "evidence_sha256": "592d8cd16dae8b7bf7363363504a828f509c84b8ebcc49f51ab2c12b6826cefe"
+  },
+  "git_commit": "deadbeef",
+  "config_sha256": "c5a1279cd47a9c07b2ffd3a57dd3a8dbbc39657c9010203f87dad599cf491b2d",
+  "model_version": null,
+  "bag": {
+    "storage_id": "mcap",
+    "path": "bags/run.mcap"
+  },
+  "replay": {
+    "trajectory_path": "replay/trajectory.json"
+  },
+  "acceptance_evidence": {
+    "first_frame": {
+      "path": "acceptance/first_frame.png",
+      "timestamp": "2026-08-24T02:00:01Z",
+      "mcap_frame_timestamp": "2026-08-24T02:00:01Z"
+    },
+    "last_frame": {
+      "path": "acceptance/last_frame.png",
+      "timestamp": "2026-08-24T02:00:07Z",
+      "mcap_frame_timestamp": "2026-08-24T02:00:07Z"
+    },
+    "landmarks": [
+      {
+        "landmark_id": "aruco-begin-01",
+        "marker_id": 1,
+        "dictionary": "4X4_50",
+        "role": "required",
+        "physical_size_m": 0.2,
+        "registered_pose": {
+          "position": {
+            "x": -52.0,
+            "y": 1.05,
+            "z": -18.0
+          },
+          "rotation_rpy_deg": {
+            "roll": 0.0,
+            "pitch": 0.0,
+            "yaw": 12.0
+          }
+        },
+        "pose_tolerance": {
+          "translation_m": 0.05,
+          "rotation_deg": 2.0
+        },
+        "min_valid_samples": 3,
+        "annotated_image_path": "acceptance/landmarks/aruco-begin-01.png",
+        "lineage": {
+          "camera_calibration_sha256": "234ead1f2f512ab76da0d8ae397c857ced41071a07fa412765d3bfc65efd5439",
+          "detector": {
+            "name": "opencv_aruco",
+            "version": "4.10.0",
+            "configuration": {
+              "dictionary": "4X4_50",
+              "adaptiveThreshWinSizeMin": 3,
+              "adaptiveThreshWinSizeMax": 23
+            }
+          },
+          "transform_id": "camera-to-scene-scene-001-v1",
+          "transform_sha256": "1d49d32c9a7996773e725baaf439ca435c1e12b0c1433598c071a72d3d393be5"
+        },
+        "observations": [
+          {
+            "seq": 0,
+            "mcap_frame_timestamp": "2026-08-24T02:00:01.100Z",
+            "corners_px": [
+              {
+                "x": 120.0,
+                "y": 80.0
+              },
+              {
+                "x": 220.0,
+                "y": 80.0
+              },
+              {
+                "x": 220.0,
+                "y": 180.0
+              },
+              {
+                "x": 120.0,
+                "y": 180.0
+              }
+            ],
+            "pose_camera": {
+              "position": {
+                "x": 0.4,
+                "y": 0.0,
+                "z": 1.8
+              },
+              "rotation_rpy_deg": {
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 1.0
+              }
+            },
+            "pose_scene": {
+              "position": {
+                "x": -52.0,
+                "y": 1.05,
+                "z": -18.0
+              },
+              "rotation_rpy_deg": {
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 12.0
+              }
+            },
+            "translation_residual_m": 0.008,
+            "rotation_residual_deg": 0.4,
+            "camera_calibration_sha256": "234ead1f2f512ab76da0d8ae397c857ced41071a07fa412765d3bfc65efd5439",
+            "detector": {
+              "name": "opencv_aruco",
+              "version": "4.10.0",
+              "configuration": {
+                "dictionary": "4X4_50",
+                "adaptiveThreshWinSizeMin": 3,
+                "adaptiveThreshWinSizeMax": 23
+              }
+            },
+            "transform_id": "camera-to-scene-scene-001-v1",
+            "transform_sha256": "1d49d32c9a7996773e725baaf439ca435c1e12b0c1433598c071a72d3d393be5"
+          },
+          {
+            "seq": 1,
+            "mcap_frame_timestamp": "2026-08-24T02:00:01.200Z",
+            "corners_px": [
+              {
+                "x": 122.0,
+                "y": 80.0
+              },
+              {
+                "x": 222.0,
+                "y": 80.0
+              },
+              {
+                "x": 222.0,
+                "y": 180.0
+              },
+              {
+                "x": 122.0,
+                "y": 180.0
+              }
+            ],
+            "pose_camera": {
+              "position": {
+                "x": 0.4,
+                "y": 0.0,
+                "z": 1.81
+              },
+              "rotation_rpy_deg": {
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 1.0
+              }
+            },
+            "pose_scene": {
+              "position": {
+                "x": -52.0,
+                "y": 1.05,
+                "z": -18.0
+              },
+              "rotation_rpy_deg": {
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 12.0
+              }
+            },
+            "translation_residual_m": 0.01,
+            "rotation_residual_deg": 0.5,
+            "camera_calibration_sha256": "234ead1f2f512ab76da0d8ae397c857ced41071a07fa412765d3bfc65efd5439",
+            "detector": {
+              "name": "opencv_aruco",
+              "version": "4.10.0",
+              "configuration": {
+                "dictionary": "4X4_50",
+                "adaptiveThreshWinSizeMin": 3,
+                "adaptiveThreshWinSizeMax": 23
+              }
+            },
+            "transform_id": "camera-to-scene-scene-001-v1",
+            "transform_sha256": "1d49d32c9a7996773e725baaf439ca435c1e12b0c1433598c071a72d3d393be5"
+          },
+          {
+            "seq": 2,
+            "mcap_frame_timestamp": "2026-08-24T02:00:01.300Z",
+            "corners_px": [
+              {
+                "x": 124.0,
+                "y": 80.0
+              },
+              {
+                "x": 224.0,
+                "y": 80.0
+              },
+              {
+                "x": 224.0,
+                "y": 180.0
+              },
+              {
+                "x": 124.0,
+                "y": 180.0
+              }
+            ],
+            "pose_camera": {
+              "position": {
+                "x": 0.4,
+                "y": 0.0,
+                "z": 1.82
+              },
+              "rotation_rpy_deg": {
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 1.0
+              }
+            },
+            "pose_scene": {
+              "position": {
+                "x": -52.0,
+                "y": 1.05,
+                "z": -18.0
+              },
+              "rotation_rpy_deg": {
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 12.0
+              }
+            },
+            "translation_residual_m": 0.012,
+            "rotation_residual_deg": 0.6,
+            "camera_calibration_sha256": "234ead1f2f512ab76da0d8ae397c857ced41071a07fa412765d3bfc65efd5439",
+            "detector": {
+              "name": "opencv_aruco",
+              "version": "4.10.0",
+              "configuration": {
+                "dictionary": "4X4_50",
+                "adaptiveThreshWinSizeMin": 3,
+                "adaptiveThreshWinSizeMax": 23
+              }
+            },
+            "transform_id": "camera-to-scene-scene-001-v1",
+            "transform_sha256": "1d49d32c9a7996773e725baaf439ca435c1e12b0c1433598c071a72d3d393be5"
+          }
+        ],
+        "sample_count": 3,
+        "translation_p95_m": 0.0118,
+        "rotation_p95_deg": 0.59,
+        "route_portion": "beginning"
+      },
+      {
+        "landmark_id": "aruco-mid-02",
+        "marker_id": 2,
+        "dictionary": "4X4_50",
+        "role": "required",
+        "physical_size_m": 0.2,
+        "registered_pose": {
+          "position": {
+            "x": -51.8,
+            "y": 1.05,
+            "z": -17.96
+          },
+          "rotation_rpy_deg": {
+            "roll": 0.0,
+            "pitch": 0.0,
+            "yaw": 12.0
+          }
+        },
+        "pose_tolerance": {
+          "translation_m": 0.05,
+          "rotation_deg": 2.0
+        },
+        "min_valid_samples": 3,
+        "annotated_image_path": "acceptance/landmarks/aruco-mid-02.png",
+        "lineage": {
+          "camera_calibration_sha256": "234ead1f2f512ab76da0d8ae397c857ced41071a07fa412765d3bfc65efd5439",
+          "detector": {
+            "name": "opencv_aruco",
+            "version": "4.10.0",
+            "configuration": {
+              "dictionary": "4X4_50",
+              "adaptiveThreshWinSizeMin": 3,
+              "adaptiveThreshWinSizeMax": 23
+            }
+          },
+          "transform_id": "camera-to-scene-scene-001-v1",
+          "transform_sha256": "1d49d32c9a7996773e725baaf439ca435c1e12b0c1433598c071a72d3d393be5"
+        },
+        "observations": [
+          {
+            "seq": 0,
+            "mcap_frame_timestamp": "2026-08-24T02:00:04.100Z",
+            "corners_px": [
+              {
+                "x": 120.0,
+                "y": 80.0
+              },
+              {
+                "x": 220.0,
+                "y": 80.0
+              },
+              {
+                "x": 220.0,
+                "y": 180.0
+              },
+              {
+                "x": 120.0,
+                "y": 180.0
+              }
+            ],
+            "pose_camera": {
+              "position": {
+                "x": 0.4,
+                "y": 0.0,
+                "z": 1.8
+              },
+              "rotation_rpy_deg": {
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 1.0
+              }
+            },
+            "pose_scene": {
+              "position": {
+                "x": -51.8,
+                "y": 1.05,
+                "z": -17.96
+              },
+              "rotation_rpy_deg": {
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 12.0
+              }
+            },
+            "translation_residual_m": 0.008,
+            "rotation_residual_deg": 0.4,
+            "camera_calibration_sha256": "234ead1f2f512ab76da0d8ae397c857ced41071a07fa412765d3bfc65efd5439",
+            "detector": {
+              "name": "opencv_aruco",
+              "version": "4.10.0",
+              "configuration": {
+                "dictionary": "4X4_50",
+                "adaptiveThreshWinSizeMin": 3,
+                "adaptiveThreshWinSizeMax": 23
+              }
+            },
+            "transform_id": "camera-to-scene-scene-001-v1",
+            "transform_sha256": "1d49d32c9a7996773e725baaf439ca435c1e12b0c1433598c071a72d3d393be5"
+          },
+          {
+            "seq": 1,
+            "mcap_frame_timestamp": "2026-08-24T02:00:04.200Z",
+            "corners_px": [
+              {
+                "x": 122.0,
+                "y": 80.0
+              },
+              {
+                "x": 222.0,
+                "y": 80.0
+              },
+              {
+                "x": 222.0,
+                "y": 180.0
+              },
+              {
+                "x": 122.0,
+                "y": 180.0
+              }
+            ],
+            "pose_camera": {
+              "position": {
+                "x": 0.4,
+                "y": 0.0,
+                "z": 1.81
+              },
+              "rotation_rpy_deg": {
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 1.0
+              }
+            },
+            "pose_scene": {
+              "position": {
+                "x": -51.8,
+                "y": 1.05,
+                "z": -17.96
+              },
+              "rotation_rpy_deg": {
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 12.0
+              }
+            },
+            "translation_residual_m": 0.01,
+            "rotation_residual_deg": 0.5,
+            "camera_calibration_sha256": "234ead1f2f512ab76da0d8ae397c857ced41071a07fa412765d3bfc65efd5439",
+            "detector": {
+              "name": "opencv_aruco",
+              "version": "4.10.0",
+              "configuration": {
+                "dictionary": "4X4_50",
+                "adaptiveThreshWinSizeMin": 3,
+                "adaptiveThreshWinSizeMax": 23
+              }
+            },
+            "transform_id": "camera-to-scene-scene-001-v1",
+            "transform_sha256": "1d49d32c9a7996773e725baaf439ca435c1e12b0c1433598c071a72d3d393be5"
+          },
+          {
+            "seq": 2,
+            "mcap_frame_timestamp": "2026-08-24T02:00:04.300Z",
+            "corners_px": [
+              {
+                "x": 124.0,
+                "y": 80.0
+              },
+              {
+                "x": 224.0,
+                "y": 80.0
+              },
+              {
+                "x": 224.0,
+                "y": 180.0
+              },
+              {
+                "x": 124.0,
+                "y": 180.0
+              }
+            ],
+            "pose_camera": {
+              "position": {
+                "x": 0.4,
+                "y": 0.0,
+                "z": 1.82
+              },
+              "rotation_rpy_deg": {
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 1.0
+              }
+            },
+            "pose_scene": {
+              "position": {
+                "x": -51.8,
+                "y": 1.05,
+                "z": -17.96
+              },
+              "rotation_rpy_deg": {
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 12.0
+              }
+            },
+            "translation_residual_m": 0.012,
+            "rotation_residual_deg": 0.6,
+            "camera_calibration_sha256": "234ead1f2f512ab76da0d8ae397c857ced41071a07fa412765d3bfc65efd5439",
+            "detector": {
+              "name": "opencv_aruco",
+              "version": "4.10.0",
+              "configuration": {
+                "dictionary": "4X4_50",
+                "adaptiveThreshWinSizeMin": 3,
+                "adaptiveThreshWinSizeMax": 23
+              }
+            },
+            "transform_id": "camera-to-scene-scene-001-v1",
+            "transform_sha256": "1d49d32c9a7996773e725baaf439ca435c1e12b0c1433598c071a72d3d393be5"
+          }
+        ],
+        "sample_count": 3,
+        "translation_p95_m": 0.0118,
+        "rotation_p95_deg": 0.59,
+        "route_portion": "middle"
+      },
+      {
+        "landmark_id": "aruco-end-03",
+        "marker_id": 3,
+        "dictionary": "4X4_50",
+        "role": "required",
+        "physical_size_m": 0.2,
+        "registered_pose": {
+          "position": {
+            "x": -51.4,
+            "y": 1.05,
+            "z": -17.88
+          },
+          "rotation_rpy_deg": {
+            "roll": 0.0,
+            "pitch": 0.0,
+            "yaw": 12.0
+          }
+        },
+        "pose_tolerance": {
+          "translation_m": 0.05,
+          "rotation_deg": 2.0
+        },
+        "min_valid_samples": 3,
+        "annotated_image_path": "acceptance/landmarks/aruco-end-03.png",
+        "lineage": {
+          "camera_calibration_sha256": "234ead1f2f512ab76da0d8ae397c857ced41071a07fa412765d3bfc65efd5439",
+          "detector": {
+            "name": "opencv_aruco",
+            "version": "4.10.0",
+            "configuration": {
+              "dictionary": "4X4_50",
+              "adaptiveThreshWinSizeMin": 3,
+              "adaptiveThreshWinSizeMax": 23
+            }
+          },
+          "transform_id": "camera-to-scene-scene-001-v1",
+          "transform_sha256": "1d49d32c9a7996773e725baaf439ca435c1e12b0c1433598c071a72d3d393be5"
+        },
+        "observations": [
+          {
+            "seq": 0,
+            "mcap_frame_timestamp": "2026-08-24T02:00:07.100Z",
+            "corners_px": [
+              {
+                "x": 120.0,
+                "y": 80.0
+              },
+              {
+                "x": 220.0,
+                "y": 80.0
+              },
+              {
+                "x": 220.0,
+                "y": 180.0
+              },
+              {
+                "x": 120.0,
+                "y": 180.0
+              }
+            ],
+            "pose_camera": {
+              "position": {
+                "x": 0.4,
+                "y": 0.0,
+                "z": 1.8
+              },
+              "rotation_rpy_deg": {
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 1.0
+              }
+            },
+            "pose_scene": {
+              "position": {
+                "x": -51.4,
+                "y": 1.05,
+                "z": -17.88
+              },
+              "rotation_rpy_deg": {
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 12.0
+              }
+            },
+            "translation_residual_m": 0.008,
+            "rotation_residual_deg": 0.4,
+            "camera_calibration_sha256": "234ead1f2f512ab76da0d8ae397c857ced41071a07fa412765d3bfc65efd5439",
+            "detector": {
+              "name": "opencv_aruco",
+              "version": "4.10.0",
+              "configuration": {
+                "dictionary": "4X4_50",
+                "adaptiveThreshWinSizeMin": 3,
+                "adaptiveThreshWinSizeMax": 23
+              }
+            },
+            "transform_id": "camera-to-scene-scene-001-v1",
+            "transform_sha256": "1d49d32c9a7996773e725baaf439ca435c1e12b0c1433598c071a72d3d393be5"
+          },
+          {
+            "seq": 1,
+            "mcap_frame_timestamp": "2026-08-24T02:00:07.200Z",
+            "corners_px": [
+              {
+                "x": 122.0,
+                "y": 80.0
+              },
+              {
+                "x": 222.0,
+                "y": 80.0
+              },
+              {
+                "x": 222.0,
+                "y": 180.0
+              },
+              {
+                "x": 122.0,
+                "y": 180.0
+              }
+            ],
+            "pose_camera": {
+              "position": {
+                "x": 0.4,
+                "y": 0.0,
+                "z": 1.81
+              },
+              "rotation_rpy_deg": {
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 1.0
+              }
+            },
+            "pose_scene": {
+              "position": {
+                "x": -51.4,
+                "y": 1.05,
+                "z": -17.88
+              },
+              "rotation_rpy_deg": {
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 12.0
+              }
+            },
+            "translation_residual_m": 0.01,
+            "rotation_residual_deg": 0.5,
+            "camera_calibration_sha256": "234ead1f2f512ab76da0d8ae397c857ced41071a07fa412765d3bfc65efd5439",
+            "detector": {
+              "name": "opencv_aruco",
+              "version": "4.10.0",
+              "configuration": {
+                "dictionary": "4X4_50",
+                "adaptiveThreshWinSizeMin": 3,
+                "adaptiveThreshWinSizeMax": 23
+              }
+            },
+            "transform_id": "camera-to-scene-scene-001-v1",
+            "transform_sha256": "1d49d32c9a7996773e725baaf439ca435c1e12b0c1433598c071a72d3d393be5"
+          },
+          {
+            "seq": 2,
+            "mcap_frame_timestamp": "2026-08-24T02:00:07.300Z",
+            "corners_px": [
+              {
+                "x": 124.0,
+                "y": 80.0
+              },
+              {
+                "x": 224.0,
+                "y": 80.0
+              },
+              {
+                "x": 224.0,
+                "y": 180.0
+              },
+              {
+                "x": 124.0,
+                "y": 180.0
+              }
+            ],
+            "pose_camera": {
+              "position": {
+                "x": 0.4,
+                "y": 0.0,
+                "z": 1.82
+              },
+              "rotation_rpy_deg": {
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 1.0
+              }
+            },
+            "pose_scene": {
+              "position": {
+                "x": -51.4,
+                "y": 1.05,
+                "z": -17.88
+              },
+              "rotation_rpy_deg": {
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 12.0
+              }
+            },
+            "translation_residual_m": 0.012,
+            "rotation_residual_deg": 0.6,
+            "camera_calibration_sha256": "234ead1f2f512ab76da0d8ae397c857ced41071a07fa412765d3bfc65efd5439",
+            "detector": {
+              "name": "opencv_aruco",
+              "version": "4.10.0",
+              "configuration": {
+                "dictionary": "4X4_50",
+                "adaptiveThreshWinSizeMin": 3,
+                "adaptiveThreshWinSizeMax": 23
+              }
+            },
+            "transform_id": "camera-to-scene-scene-001-v1",
+            "transform_sha256": "1d49d32c9a7996773e725baaf439ca435c1e12b0c1433598c071a72d3d393be5"
+          }
+        ],
+        "sample_count": 3,
+        "translation_p95_m": 0.0118,
+        "rotation_p95_deg": 0.59,
+        "route_portion": "end"
+      },
+      {
+        "landmark_id": "aruco-aux-10",
+        "marker_id": 10,
+        "dictionary": "4X4_50",
+        "role": "auxiliary",
+        "physical_size_m": 0.2,
+        "registered_pose": {
+          "position": {
+            "x": -51.6,
+            "y": 1.05,
+            "z": -17.92
+          },
+          "rotation_rpy_deg": {
+            "roll": 0.0,
+            "pitch": 0.0,
+            "yaw": 12.0
+          }
+        },
+        "pose_tolerance": {
+          "translation_m": 0.05,
+          "rotation_deg": 2.0
+        },
+        "min_valid_samples": 3,
+        "annotated_image_path": "acceptance/landmarks/aruco-aux-10.png",
+        "lineage": {
+          "camera_calibration_sha256": "234ead1f2f512ab76da0d8ae397c857ced41071a07fa412765d3bfc65efd5439",
+          "detector": {
+            "name": "opencv_aruco",
+            "version": "4.10.0",
+            "configuration": {
+              "dictionary": "4X4_50",
+              "adaptiveThreshWinSizeMin": 3,
+              "adaptiveThreshWinSizeMax": 23
+            }
+          },
+          "transform_id": "camera-to-scene-scene-001-v1",
+          "transform_sha256": "1d49d32c9a7996773e725baaf439ca435c1e12b0c1433598c071a72d3d393be5"
+        },
+        "observations": [
+          {
+            "seq": 0,
+            "mcap_frame_timestamp": "2026-08-24T02:00:05.100Z",
+            "corners_px": [
+              {
+                "x": 120.0,
+                "y": 80.0
+              },
+              {
+                "x": 220.0,
+                "y": 80.0
+              },
+              {
+                "x": 220.0,
+                "y": 180.0
+              },
+              {
+                "x": 120.0,
+                "y": 180.0
+              }
+            ],
+            "pose_camera": {
+              "position": {
+                "x": 0.4,
+                "y": 0.0,
+                "z": 1.8
+              },
+              "rotation_rpy_deg": {
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 1.0
+              }
+            },
+            "pose_scene": {
+              "position": {
+                "x": -51.6,
+                "y": 1.05,
+                "z": -17.92
+              },
+              "rotation_rpy_deg": {
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 12.0
+              }
+            },
+            "translation_residual_m": 0.008,
+            "rotation_residual_deg": 0.4,
+            "camera_calibration_sha256": "234ead1f2f512ab76da0d8ae397c857ced41071a07fa412765d3bfc65efd5439",
+            "detector": {
+              "name": "opencv_aruco",
+              "version": "4.10.0",
+              "configuration": {
+                "dictionary": "4X4_50",
+                "adaptiveThreshWinSizeMin": 3,
+                "adaptiveThreshWinSizeMax": 23
+              }
+            },
+            "transform_id": "camera-to-scene-scene-001-v1",
+            "transform_sha256": "1d49d32c9a7996773e725baaf439ca435c1e12b0c1433598c071a72d3d393be5"
+          },
+          {
+            "seq": 1,
+            "mcap_frame_timestamp": "2026-08-24T02:00:05.200Z",
+            "corners_px": [
+              {
+                "x": 122.0,
+                "y": 80.0
+              },
+              {
+                "x": 222.0,
+                "y": 80.0
+              },
+              {
+                "x": 222.0,
+                "y": 180.0
+              },
+              {
+                "x": 122.0,
+                "y": 180.0
+              }
+            ],
+            "pose_camera": {
+              "position": {
+                "x": 0.4,
+                "y": 0.0,
+                "z": 1.81
+              },
+              "rotation_rpy_deg": {
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 1.0
+              }
+            },
+            "pose_scene": {
+              "position": {
+                "x": -51.6,
+                "y": 1.05,
+                "z": -17.92
+              },
+              "rotation_rpy_deg": {
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 12.0
+              }
+            },
+            "translation_residual_m": 0.01,
+            "rotation_residual_deg": 0.5,
+            "camera_calibration_sha256": "234ead1f2f512ab76da0d8ae397c857ced41071a07fa412765d3bfc65efd5439",
+            "detector": {
+              "name": "opencv_aruco",
+              "version": "4.10.0",
+              "configuration": {
+                "dictionary": "4X4_50",
+                "adaptiveThreshWinSizeMin": 3,
+                "adaptiveThreshWinSizeMax": 23
+              }
+            },
+            "transform_id": "camera-to-scene-scene-001-v1",
+            "transform_sha256": "1d49d32c9a7996773e725baaf439ca435c1e12b0c1433598c071a72d3d393be5"
+          },
+          {
+            "seq": 2,
+            "mcap_frame_timestamp": "2026-08-24T02:00:05.300Z",
+            "corners_px": [
+              {
+                "x": 124.0,
+                "y": 80.0
+              },
+              {
+                "x": 224.0,
+                "y": 80.0
+              },
+              {
+                "x": 224.0,
+                "y": 180.0
+              },
+              {
+                "x": 124.0,
+                "y": 180.0
+              }
+            ],
+            "pose_camera": {
+              "position": {
+                "x": 0.4,
+                "y": 0.0,
+                "z": 1.82
+              },
+              "rotation_rpy_deg": {
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 1.0
+              }
+            },
+            "pose_scene": {
+              "position": {
+                "x": -51.6,
+                "y": 1.05,
+                "z": -17.92
+              },
+              "rotation_rpy_deg": {
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 12.0
+              }
+            },
+            "translation_residual_m": 0.012,
+            "rotation_residual_deg": 0.6,
+            "camera_calibration_sha256": "234ead1f2f512ab76da0d8ae397c857ced41071a07fa412765d3bfc65efd5439",
+            "detector": {
+              "name": "opencv_aruco",
+              "version": "4.10.0",
+              "configuration": {
+                "dictionary": "4X4_50",
+                "adaptiveThreshWinSizeMin": 3,
+                "adaptiveThreshWinSizeMax": 23
+              }
+            },
+            "transform_id": "camera-to-scene-scene-001-v1",
+            "transform_sha256": "1d49d32c9a7996773e725baaf439ca435c1e12b0c1433598c071a72d3d393be5"
+          }
+        ],
+        "sample_count": 3,
+        "translation_p95_m": 0.0118,
+        "rotation_p95_deg": 0.59
+      }
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "artifacts/preview-pointcloud.ply",
+      "kind": "pointcloud",
+      "display": true
+    }
+  ],
+  "payload_inventory": [
+    {
+      "path": "acceptance/first_frame.png",
+      "sha256": "abc58d5127d7cdf313beb9ec8ee839860a9c6bfbc48c8b8eb6a3f7d8bb63de6f"
+    },
+    {
+      "path": "acceptance/landmarks/aruco-aux-10.png",
+      "sha256": "abc58d5127d7cdf313beb9ec8ee839860a9c6bfbc48c8b8eb6a3f7d8bb63de6f"
+    },
+    {
+      "path": "acceptance/landmarks/aruco-begin-01.png",
+      "sha256": "abc58d5127d7cdf313beb9ec8ee839860a9c6bfbc48c8b8eb6a3f7d8bb63de6f"
+    },
+    {
+      "path": "acceptance/landmarks/aruco-end-03.png",
+      "sha256": "abc58d5127d7cdf313beb9ec8ee839860a9c6bfbc48c8b8eb6a3f7d8bb63de6f"
+    },
+    {
+      "path": "acceptance/landmarks/aruco-mid-02.png",
+      "sha256": "abc58d5127d7cdf313beb9ec8ee839860a9c6bfbc48c8b8eb6a3f7d8bb63de6f"
+    },
+    {
+      "path": "acceptance/last_frame.png",
+      "sha256": "abc58d5127d7cdf313beb9ec8ee839860a9c6bfbc48c8b8eb6a3f7d8bb63de6f"
+    },
+    {
+      "path": "alignment/camera_to_scene.json",
+      "sha256": "1d49d32c9a7996773e725baaf439ca435c1e12b0c1433598c071a72d3d393be5"
+    },
+    {
+      "path": "alignment/evidence.json",
+      "sha256": "592d8cd16dae8b7bf7363363504a828f509c84b8ebcc49f51ab2c12b6826cefe"
+    },
+    {
+      "path": "artifacts/preview-pointcloud.ply",
+      "sha256": "ee520a8c55c0053cea62de9dc005f1e1d1af9f5ccd95e5ec524b8c731ac1292e"
+    },
+    {
+      "path": "bags/run.mcap",
+      "sha256": "498c7827dc566dcd34fc99284fcfd81894dc86d8f2f01bfc355e04a0f96bd0d9"
+    },
+    {
+      "path": "config/camera_calibration.json",
+      "sha256": "234ead1f2f512ab76da0d8ae397c857ced41071a07fa412765d3bfc65efd5439"
+    },
+    {
+      "path": "config/system.yaml",
+      "sha256": "c5a1279cd47a9c07b2ffd3a57dd3a8dbbc39657c9010203f87dad599cf491b2d"
+    },
+    {
+      "path": "replay/trajectory.json",
+      "sha256": "01872f0c6676cbff7504a70d95fae7c11aa6ce117d87efc68b00484439d4d136"
+    },
+    {
+      "path": "scene/scene-version.json",
+      "sha256": "f4cbcf538e84239400d013283deec074a99a57c40888c710b625424747ea2c3b"
+    }
+  ],
+  "exit_reason": "golden_fixture_complete"
+}

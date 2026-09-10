@@ -1,0 +1,9 @@
+ply
+format ascii 1.0
+comment optional display artifact; Digital Twin does not promise rendering
+element vertex 1
+property float x
+property float y
+property float z
+end_header
+-52.0 1.0 -18.0

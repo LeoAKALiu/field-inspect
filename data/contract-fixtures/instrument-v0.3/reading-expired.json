@@ -1,0 +1,37 @@
+{
+  "reading_id": "read-v03-0002",
+  "run_id": "run-v03-golden-1",
+  "asset_id": "ast-delam-001",
+  "captured_at": "2026-05-02T08:00:00.000Z",
+  "metrics": [
+    {
+      "name": "deep_base",
+      "value": 11.9,
+      "unit": "mm"
+    },
+    {
+      "name": "shallow_base",
+      "value": 3.0,
+      "unit": "mm"
+    },
+    {
+      "name": "delta",
+      "value": 8.9,
+      "unit": "mm"
+    }
+  ],
+  "quality": "uncertain",
+  "valid_until": "2026-06-01T00:00:00Z",
+  "contract_version": "0.3",
+  "source_type": "replay",
+  "provenance": {
+    "source": "replay",
+    "status": "pending_confirmation"
+  },
+  "lineage": {
+    "source": "replay",
+    "producer": "inspection_trajectory_export",
+    "producer_version": "1.0.0",
+    "derived_from": "run-v03-golden-1"
+  }
+}

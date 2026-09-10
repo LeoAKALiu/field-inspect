@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://digital-twin.local/contracts/run-bundle.schema.json",
+  "title": "SCOUT Mini offline inspection run bundle contract v1",
+  "description": "Development/migration-only v1 payload inside an RFC 8493 BagIt package. Not production-compatible. Formal inspection_run packages must use inspection-package-v2.schema.json.",
+  "$defs": {
+    "Identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "RelativePayloadPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[^\\u0000]+$"
+    },
+    "Position3D": {
+      "type": "object",
+      "required": ["x", "y", "z"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "z": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "TrajectoryPoint": {
+      "type": "object",
+      "required": ["seq", "timestamp", "position", "heading_deg", "speed_mps"],
+      "properties": {
+        "seq": { "type": "integer", "minimum": 0 },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "position": { "$ref": "#/$defs/Position3D" },
+        "heading_deg": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "exclusiveMaximum": 360
+        },
+        "speed_mps": { "type": ["number", "null"], "minimum": 0 },
+        "battery_pct": { "type": ["number", "null"], "minimum": 0, "maximum": 100 }
+      },
+      "additionalProperties": false
+    },
+    "Trajectory": {
+      "type": "object",
+      "required": ["schema_version", "run_id", "coordinate_system", "alignment_id", "points"],
+      "properties": {
+        "schema_version": { "const": "1.0" },
+        "run_id": { "$ref": "#/$defs/Identifier" },
+        "coordinate_system": { "const": "scene_local_yup" },
+        "alignment_id": { "$ref": "#/$defs/Identifier" },
+        "points": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1000000,
+          "items": { "$ref": "#/$defs/TrajectoryPoint" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "Artifact": {
+      "type": "object",
+      "required": ["path", "kind", "display"],
+      "properties": {
+        "path": { "$ref": "#/$defs/RelativePayloadPath" },
+        "kind": {
+          "enum": ["evidence_image", "pointcloud", "inspection_result"]
+        },
+        "display": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "Manifest": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "source_kind",
+        "run_id",
+        "scene_id",
+        "name",
+        "status",
+        "started_at",
+        "ended_at",
+        "coordinate_system",
+        "alignment_id",
+        "git_commit",
+        "config_sha256",
+        "model_version",
+        "bag",
+        "replay",
+        "artifacts",
+        "exit_reason"
+      ],
+      "properties": {
+        "schema_version": { "const": "1.0" },
+        "source_kind": {
+          "enum": ["synthetic_contract_fixture", "inspection_run"]
+        },
+        "run_id": { "$ref": "#/$defs/Identifier" },
+        "scene_id": { "$ref": "#/$defs/Identifier" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "status": {
+          "enum": [
+            "completed",
+            "completed_with_exceptions",
+            "incomplete",
+            "aborted",
+            "failed"
+          ]
+        },
+        "started_at": { "type": "string", "format": "date-time" },
+        "ended_at": { "type": "string", "format": "date-time" },
+        "coordinate_system": { "const": "scene_local_yup" },
+        "alignment_id": { "$ref": "#/$defs/Identifier" },
+        "git_commit": {
+          "type": "string",
+          "pattern": "^(unknown|[a-f0-9]{7,40})$"
+        },
+        "config_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "model_version": { "type": ["string", "null"] },
+        "bag": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["storage_id", "path"],
+              "properties": {
+                "storage_id": { "const": "mcap" },
+                "path": { "$ref": "#/$defs/RelativePayloadPath" }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "replay": {
+          "type": "object",
+          "required": ["trajectory_path"],
+          "properties": {
+            "trajectory_path": { "$ref": "#/$defs/RelativePayloadPath" }
+          },
+          "additionalProperties": false
+        },
+        "artifacts": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Artifact" }
+        },
+        "exit_reason": { "type": "string", "minLength": 1, "maxLength": 200 }
+      },
+      "additionalProperties": false
+    },
+    "ImportResult": {
+      "type": "object",
+      "required": ["run_id", "bundle_sha256", "status", "trajectory_points"],
+      "properties": {
+        "run_id": { "$ref": "#/$defs/Identifier" },
+        "bundle_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "status": { "enum": ["imported", "duplicate"] },
+        "trajectory_points": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    }
+  }
+}

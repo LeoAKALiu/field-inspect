@@ -1,0 +1,6 @@
+Bag-Software-Agent: digital-twin-inspection-package 2.0
+Bagging-Date: 2026-08-24
+External-Identifier: golden-run-v2-completed
+Internal-Sender-Description: Golden Formal Inspection Package v2 fixture; not a field recording
+Payload-Oxum: 32704.15
+Source-Organization: Digital Twin contract lock

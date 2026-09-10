@@ -1,0 +1,191 @@
+# Public commissioning example; addresses are RFC 5737 placeholders.
+hik_camera_node:
+  ros__parameters:
+    backend: "mvs"
+    host_ip: "192.0.2.50"
+    camera_ip: "192.0.2.30"
+    image_topic: "/camera/image_raw"
+    camera_info_topic: "/camera/camera_info"
+    frame_id: "camera_optical_frame"
+    camera_name: "hik_mv_cs050_10gc"
+    camera_model: "MV-CS050-10GC"
+    camera_serial: ""  # Supply the commissioned device identity privately.
+    lens_id: ""  # Supply measured calibration identity privately.
+    calibration_url: ""
+    pixel_format: "BGR8"
+    sensor_width: 2448
+    sensor_height: 2048
+    width: 1280
+    height: 1024
+    # Center the ROI on the MV-CS050-10GC 2448x2048 sensor.
+    offset_x: 584
+    offset_y: 512
+    frame_rate: 10.0
+    # Example camera settings; commission them for the actual scene.
+    exposure_auto: false
+    exposure_time_us: 50000.0
+    gain_auto: false
+    gain_db: 0.0
+    reconnect_interval_ms: 2000
+    diagnostics_topic: "/diagnostics"
+
+scout_bringup:
+  ros__parameters:
+    can_interface: "can_scout"
+    can_bitrate: 500000
+    can_restart_ms: 100
+    sensor_interface: "enP8p1s0"
+    host_ip: "192.0.2.50"
+    lidar_ip: "192.0.2.191"
+    camera_ip: "192.0.2.30"
+    base_frame: "base_link"
+    body_frame: "body"
+    lidar_frame: "lidar_link"
+    camera_frame: "camera_link"
+    camera_optical_frame: "camera_optical_frame"
+    cmd_vel_input_topic: "/cmd_vel_safe"
+    livox_publish_freq_hz: 10.0
+    livox_xfer_format: 1
+    fast_lio_config_file: "mid360.yaml"
+    fast_lio_rviz: false
+    extrinsics_verified: false
+    base_to_body_xyz_m: [0.0, 0.0, 0.0]
+    base_to_body_rpy_rad: [0.0, 0.0, 0.0]
+    base_to_lidar_xyz_m: [0.0, 0.0, 0.0]
+    base_to_lidar_rpy_rad: [0.0, 0.0, 0.0]
+    base_to_camera_xyz_m: [0.0, 0.0, 0.0]
+    base_to_camera_rpy_rad: [0.0, 0.0, 0.0]
+
+health_monitor:
+  ros__parameters:
+    lidar_topic: "/livox/imu"
+    monitor_lidar: true
+    monitor_tf: true
+    monitor_chassis: true
+    monitor_can_rx: true
+    monitor_emergency_stop: true
+    lidar_timeout_ms: 1000
+    chassis_timeout_ms: 500
+    can_rx_timeout_ms: 500
+    emergency_stop_timeout_ms: 500
+    tf_source_frame: "odom"
+    tf_target_frame: "base_link"
+    tf_timeout_ms: 1000
+    emergency_stop_topic: "/safety/emergency_stop"
+    chassis_fault_topic: "/safety/chassis_fault"
+    lidar_healthy_topic: "/safety/lidar_healthy"
+    tf_healthy_topic: "/safety/tf_healthy"
+    odom_tf_healthy_topic: "/safety/odom_tf_healthy"
+    diagnostics_topic: "/diagnostics"
+    scout_status_topic: "/scout_status"
+    scout_rc_topic: "/rc_status"
+    scout_odom_topic: "/odom"
+    can_interface: "can_scout"
+    expected_control_mode: 1
+    expected_vehicle_state: 0
+    default_chassis_fault: false
+
+localization_adapter:
+  ros__parameters:
+    input_odom_topic: "/Odometry"
+    health_topic: "/safety/tf_healthy"
+    diagnostics_topic: "/diagnostics"
+    input_global_frame: "camera_init"
+    body_frame: "body"
+    map_frame: "map"
+    odom_frame: "odom"
+    base_frame: "base_link"
+    pose_timeout_ms: 500
+    tf_lookup_timeout_ms: 50
+    future_tolerance_ms: 50
+    max_translation_jump_m: 0.5
+    max_rotation_jump_rad: 0.35
+    healthy_confirmations: 3
+
+collision_monitor:
+  ros__parameters:
+    input_topic: "/cloud_registered_body"
+    obstacle_clear_topic: "/safety/obstacle_clear"
+    diagnostics_topic: "/diagnostics"
+    expected_frame_id: "body"
+    cloud_timeout_ms: 500
+    min_x_m: 0.15
+    max_x_m: 0.90
+    half_width_m: 0.45
+    min_z_m: -0.50
+    max_z_m: 0.55
+    min_points: 5
+    clear_confirmations: 3
+
+safety_mux:
+  ros__parameters:
+    teleop_topic: "/cmd_vel_teleop"
+    auto_topic: "/cmd_vel_auto"
+    guarded_topic: "/cmd_vel_guarded"
+    output_topic: "/cmd_vel_safe"
+    diagnostics_topic: "/diagnostics"
+    joy_topic: "/joy"
+    require_hold_to_run: true
+    teleop_enable_button: 5
+    emergency_stop_topic: "/safety/emergency_stop"
+    require_emergency_stop_heartbeat: false
+    chassis_fault_topic: "/safety/chassis_fault"
+    lidar_healthy_topic: "/safety/lidar_healthy"
+    tf_healthy_topic: "/safety/tf_healthy"
+    obstacle_clear_topic: "/safety/obstacle_clear"
+    require_obstacle_clear: false
+    command_timeout_ms: 300
+    health_timeout_ms: 500
+    max_linear_mps: 0.2
+    max_angular_rps: 0.5
+
+route_orchestrator:
+  ros__parameters:
+    fixed_route_path: ""
+    controller_config: "nav2_controller.yaml"
+    controller_tuning_verified: false
+    route_status_topic: "/route/status"
+    safety_diagnostics_topic: "/diagnostics"
+    inspection_status_topic: "/inspection/status"
+    auto_command_topic: "/cmd_vel_auto"
+    expected_auto_publisher_node: "controller_server"
+    follow_path_action: "/follow_path"
+    controller_id: "FollowPath"
+    goal_checker_id: "goal_checker"
+    first_command_timeout_ms: 1000
+    safety_diagnostic_timeout_ms: 500
+    inspection_status_timeout_ms: 2500
+
+joy_node:
+  ros__parameters:
+    device_id: 0
+    deadzone: 0.05
+    autorepeat_rate: 20.0
+    coalesce_interval_ms: 1
+
+teleop_twist_joy:
+  ros__parameters:
+    require_enable_button: true
+    enable_button: 5
+    enable_turbo_button: -1
+    "axis_linear.x": 1
+    "scale_linear.x": 0.2
+    "scale_linear_turbo.x": 0.2
+    "axis_angular.yaw": 0
+    "scale_angular.yaw": 0.5
+    "scale_angular_turbo.yaw": 0.5
+
+inspection_manager:
+  ros__parameters:
+    run_mode: "commissioning"
+    output_root: "/data/scout_runs"
+    storage_id: "mcap"
+    status_topic: "/inspection/status"
+    route_status_topic: "/route/status"
+    diagnostics_topic: "/diagnostics"
+    camera_diagnostic_name: "hik_camera_ros2"
+    camera_diagnostic_timeout_ms: 2000
+    calibration_target_url: "file:///data/scout_calibration/a2-checkerboard-9x6-54p95mm-v1.yaml"
+    calibration_profile_url: "file:///data/scout_calibration/hik_mv_cs050_10gc_1280x1024_v1.profile.yaml"
+    recording_config: "recording.yaml"
+    config_path: ""

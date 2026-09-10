@@ -1,0 +1,17 @@
+.git
+.pnpm-store
+.reasonix
+node_modules
+**/node_modules
+**/dist
+**/.venv
+**/__pycache__
+**/*.pyc
+docs/screenshots
+test-results
+data/uploads
+*.log
+twin.db
+**/twin.db
+.DS_Store
+playwright-report

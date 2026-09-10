@@ -1,0 +1,25 @@
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+
+WORKDIR /app/services/api
+
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY services/api/pyproject.toml services/api/uv.lock services/api/README.md ./
+COPY services/api/src ./src
+COPY services/api/app ./app
+COPY packages/contracts/python /app/packages/contracts/python
+COPY data/demo /app/data/demo
+COPY data/imports /app/data/imports
+COPY data/var /app/data/var
+
+RUN uv sync --no-dev
+
+ENV PATH="/app/services/api/.venv/bin:$PATH"
+ENV PYTHONPATH="/app/services/api"
+ENV TWIN_DB_PATH=/app/data/var/twin.db
+ENV TWIN_IMPORT_ROOT=/app/data/imports
+
+EXPOSE 8000
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
