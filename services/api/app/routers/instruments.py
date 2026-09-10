@@ -48,6 +48,8 @@ def match(payload: service.MatchInput, db: Database = Depends(get_db)):
 
 @router.post("/reviews")
 def review(payload: service.MatchReview, db: Database = Depends(get_db)):
+    from ..access import audit_actor
+    payload = payload.model_copy(update={"operator_label": audit_actor(payload.operator_label)})
     return call(service.review_match, db, payload)
 
 
@@ -71,12 +73,12 @@ def observed_analysis(observation_id: str, db: Database = Depends(get_db)):
     observation = call(service.record, db, "observation", observation_id)
     matches = [m for m in service.records(db, "asset_match", observation["run_id"])
                if call(service.record, db, "localization", m["localization_id"])["observation_id"] == observation_id]
-    reviews = service.records(db, "match_review", observation["run_id"])
     confirmed = set()
     for match in matches:
-        relevant = sorted([r for r in reviews if r["match_id"] == match["match_id"]], key=lambda r: r["reviewed_at"])
-        if relevant:
-            if relevant[-1]["asset_id"]: confirmed.add(relevant[-1]["asset_id"])
+        latest = db.query_one("SELECT payload FROM instrument_records WHERE kind='match_review' AND json_extract(payload,'$.match_id')=? ORDER BY rowid DESC LIMIT 1", (match["match_id"],))
+        if latest:
+            reviewed = json.loads(latest["payload"])
+            if reviewed["asset_id"]: confirmed.add(reviewed["asset_id"])
         elif match["status"] == "matched": confirmed.add(match["asset_id"])
     if len(confirmed) != 1:
         return {"observation_id": observation_id, "status": "needs_review" if matches else "unmatched", "matches": matches}
@@ -174,3 +176,43 @@ def job_events(job_id: str, cursor: int = Query(default=0, ge=0), limit: int = Q
                db: Database = Depends(get_db)):
     rows = db.query_all("SELECT * FROM processing_job_events WHERE job_id=? AND seq>? ORDER BY seq LIMIT ?", (job_id,cursor,limit+1))
     return {"items":[dict(row) for row in rows[:limit]], "next_cursor":rows[limit-1]["seq"] if len(rows)>limit else None}
+
+
+@router.get("/asset-page")
+def asset_page(scene_version_id: str | None = None, cursor: str = Query(default="", max_length=128),
+               limit: int = Query(default=25, ge=1, le=100), db: Database = Depends(get_db)):
+    sql = "SELECT id,payload FROM instrument_assets WHERE id>?"; args = [cursor]
+    if scene_version_id is not None:
+        sql += " AND json_extract(payload,'$.scene_version_id')=?"; args.append(scene_version_id)
+    rows = db.query_all(sql + " ORDER BY id LIMIT ?", tuple(args+[limit+1]))
+    return {"items":[json.loads(r["payload"]) for r in rows[:limit]], "next_cursor": rows[limit-1]["id"] if len(rows)>limit else None}
+
+
+@router.get("/observations/{observation_id}/review-context")
+def review_context(observation_id: str, db: Database = Depends(get_db)):
+    observation = call(service.record,db,"observation",observation_id)
+    run = db.query_one("SELECT scene_version_id FROM tasks WHERE id=?", (observation["run_id"],))
+    locals = db.query_all("SELECT payload FROM instrument_records WHERE kind='localization' AND run_id=? AND json_extract(payload,'$.observation_id')=? ORDER BY id LIMIT 101", (observation["run_id"],observation_id))
+    results = []
+    for row in locals[:100]:
+        local = json.loads(row["payload"])
+        matches = db.query_all("SELECT payload FROM instrument_records WHERE kind='asset_match' AND run_id=? AND json_extract(payload,'$.localization_id')=? ORDER BY id LIMIT 101", (observation["run_id"],local["localization_id"]))
+        for match_row in matches[:100]:
+            match = json.loads(match_row["payload"])
+            review = db.query_one("SELECT payload FROM instrument_records WHERE kind='match_review' AND json_extract(payload,'$.match_id')=? ORDER BY rowid DESC LIMIT 1", (match["match_id"],))
+            results.append({"localization":local,"match":match,"latest_review":json.loads(review["payload"]) if review else None})
+    return {"observation":observation,"scene_version_id":run["scene_version_id"] if run else None,
+            "localizations":[json.loads(r["payload"]) for r in locals[:100]], "matches":results,
+            "notice":"Shared-secret mode records operator labels, not authenticated personal identities."}
+
+
+@router.post("/observations/{observation_id}/match")
+def match_observed(observation_id: str, db: Database = Depends(get_db)):
+    observation = call(service.record,db,"observation",observation_id)
+    report = call(service.record,db,"processing_report",observation["lineage"]["derived_from"])
+    detected = [d for d in report["detections"] if d["observation_id"] == observation_id]
+    if report["run_id"] != observation["run_id"] or len(detected) != 1:
+        raise HTTPException(422,"No unique recorded marker identity for this observation")
+    marker = detected[0]
+    rows = db.query_all("SELECT id FROM instrument_records WHERE kind='localization' AND run_id=? AND json_extract(payload,'$.observation_id')=? ORDER BY id", (observation["run_id"],observation_id))
+    return [call(service.match_asset, db, service.MatchInput(localization_id=r["id"], marker_family=marker["dictionary"], marker_id=marker["marker_id"]), "authorized_operator") for r in rows]

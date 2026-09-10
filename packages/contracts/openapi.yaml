@@ -1,459 +1,2071 @@
 openapi: 3.1.0
 info:
-  title: 地下工程巡检车数字孪生原型 API
-  version: 0.5.0
-  description: |
-    离线数字孪生原型后端。SCOUT 巡检在车端完全离线，结束后通过 U 盘把 RFC 8493
-    BagIt 包复制到服务器 inbox，再由本地导入接口物化为 replay；不存在车辆实时上传链路。
-    数据模式：simulation（模拟）、replay（历史回放）、live_pending（甲方接口预留，不虚构）。
-    对象 Schema 引用 domain.schema.json；字段级数据出处见各属性的 x-provenance 标记。
-    坐标系统一 scene_local_yup（右手系，Y 轴向上，单位米）。时间一律 ISO 8601 UTC。错误统一为 ErrorResponse。
-    v0.3 领域扩展（contract_version "0.3"）以组件 Schema 形式发布：仪器观测、仪器定位、
-    资产匹配、命名指标读数、巡检站、站点尝试与运行结果溯源；定义见 domain.schema.json 的
-    InstrumentObservation / InstrumentLocalization / AssetMatch / InstrumentReading /
-    InspectionStation / StationAttempt / InspectionRunOutcome。marker_proxy 检测器明确
-    不等于通用图像识别，unmatched/needs_review 不产生已确认的客户设备 ID；契约不包含
-    连续原始视频展示或上传。对应 REST 端点随 scout_mini_ws#6/#7 的接入另行发布。
-    Formal Inspection Package v2 is the only production handoff contract. Digital Twin
-    does not parse MCAP, does not promise point-cloud rendering, does not receive
-    customer instrument data, and does not provide an online upload endpoint.
-servers:
-  - url: http://localhost:8000/api
-tags:
-  - name: scenes
-  - name: tasks
-  - name: events
-  - name: devices
-  - name: data-sources
-  - name: live
-  - name: imports
-  - name: system
-  - name: inspection-packages
-    description: |
-      Formal Inspection Package v2 is transferred by removable media as a complete
-      RFC 8493 BagIt 1.0 directory. This API does not accept network file uploads.
+  title: Field Inspect API
+  version: 0.1.0
+  description: Field Inspect offline inspection API. Local loopback access by default;
+    configured credentials required for network access. Processing completion is not
+    field acceptance. No vehicle control or online package-upload endpoint. New functions
+    have not been tested.
 paths:
-  /health:
-    get:
-      tags: [system]
-      summary: 健康检查
-      operationId: getHealth
+  /api/access/login:
+    post:
+      summary: Login
+      operationId: login_api_access_login_post
       responses:
         '200':
-          description: 服务正常
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/access/me:
+    get:
+      summary: Current User
+      operationId: current_user_api_access_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/access/audit:
+    get:
+      summary: Audit Log
+      operationId: audit_log_api_access_audit_get
+      parameters:
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Cursor
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 50
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/access/logout:
+    post:
+      summary: Logout
+      operationId: logout_api_access_logout_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/health:
+    get:
+      summary: Get Health
+      operationId: get_health_api_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Get Health Api Health Get
+      security: []
+  /api/scenes:
+    get:
+      summary: List Scenes
+      operationId: list_scenes_api_scenes_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  additionalProperties: true
+                  type: object
+                type: array
+                title: Response List Scenes Api Scenes Get
+  /api/scene-versions/{scene_version_id}:
+    get:
+      summary: Get Scene Version
+      operationId: get_scene_version_api_scene_versions__scene_version_id__get
+      parameters:
+      - name: scene_version_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Scene Version Id
+      responses:
+        '200':
+          description: Successful Response
           content:
             application/json:
               schema:
                 type: object
-                required: [status, version]
-                properties:
-                  status: { type: string, enum: [ok] }
-                  version: { type: string }
-  /scenes:
-    get:
-      tags: [scenes]
-      summary: 场景列表
-      operationId: listScenes
-      responses:
-        '200':
-          description: 场景数组
+                additionalProperties: true
+                title: Response Get Scene Version Api Scene Versions  Scene Version
+                  Id  Get
+        '422':
+          description: Validation Error
           content:
             application/json:
               schema:
-                type: array
-                items: { $ref: './domain.schema.json#/$defs/Scene' }
-  /scenes/{scene_id}:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/scenes/{scene_id}/metadata:
     get:
-      tags: [scenes]
-      summary: 场景详情（含空间绑定）
-      operationId: getScene
+      summary: Get Scene Metadata
+      operationId: get_scene_metadata_api_scenes__scene_id__metadata_get
       parameters:
-        - $ref: '#/components/parameters/SceneId'
-      responses:
-        '200':
-          description: 场景详情
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: './domain.schema.json#/$defs/Scene'
-                  - type: object
-                    properties:
-                      spatial_bindings:
-                        type: array
-                        items: { $ref: './domain.schema.json#/$defs/SpatialBinding' }
-        '404': { $ref: '#/components/responses/NotFound' }
-  /scenes/{scene_id}/metadata:
-    get:
-      tags: [scenes]
-      summary: 场景元数据（三维资产引用、坐标系声明与巡检路线）
-      operationId: getSceneMetadata
-      parameters:
-        - $ref: '#/components/parameters/SceneId'
-        - {
-            name: scene_version_id,
-            in: query,
-            schema: { type: string },
-            description: 绑定到指定 Scene Version；省略时使用该场景当前 navigation_default 版本（若有）
-          }
-      description: |
-        前端车辆轨迹/路线不得写死在组件中，必须从此接口动态加载。
-        历史 Recorded Run 必须带上导入时的 scene_version_id，不得静默改绑到最新场景。
-      responses:
-        '200':
-          description: 场景元数据
-          content:
-            application/json:
-              schema: { $ref: './domain.schema.json#/$defs/SceneMetadata' }
-        '404': { $ref: '#/components/responses/NotFound' }
-  /scene-versions/{scene_version_id}:
-    get:
-      tags: [scenes]
-      summary: Scene Version 身份（历史运行绑定）
-      operationId: getSceneVersion
-      parameters:
-        - name: scene_version_id
-          in: path
-          required: true
-          schema: { type: string }
-      responses:
-        '200':
-          description: Scene Version
-          content:
-            application/json:
-              schema: { $ref: './domain.schema.json#/$defs/SceneVersion' }
-        '404': { $ref: '#/components/responses/NotFound' }
-  /tasks:
-    get:
-      tags: [tasks]
-      summary: 巡检任务列表
-      operationId: listTasks
-      parameters:
-        - { name: scene_id, in: query, schema: { type: string } }
-        - { name: status, in: query, schema: { type: string, enum: [pending, running, completed, completed_with_exceptions, aborted] } }
-        - { name: mode, in: query, schema: { type: string, enum: [simulation, replay, live_pending] } }
-        - { name: run_kind, in: query, schema: { type: string, enum: [demonstration, recorded] } }
-      responses:
-        '200':
-          description: 任务数组（按 actual_end、否则 planned_start 倒序）
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: './domain.schema.json#/$defs/PatrolTask' }
-  /tasks/{task_id}:
-    get:
-      tags: [tasks]
-      summary: 任务详情
-      operationId: getTask
-      parameters:
-        - $ref: '#/components/parameters/TaskId'
-      responses:
-        '200':
-          description: 任务详情
-          content:
-            application/json:
-              schema: { $ref: './domain.schema.json#/$defs/PatrolTask' }
-        '404': { $ref: '#/components/responses/NotFound' }
-  /tasks/{task_id}/trajectory:
-    get:
-      tags: [tasks]
-      summary: 任务轨迹（回放数据源，批量获取）
-      operationId: getTaskTrajectory
-      parameters:
-        - $ref: '#/components/parameters/TaskId'
-        - { name: from_seq, in: query, schema: { type: integer, minimum: 0, default: 0 } }
-        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 1000000, default: 10000 } }
-      responses:
-        '200':
-          description: 轨迹点数组（按 seq 升序）
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: './domain.schema.json#/$defs/TrajectoryPoint' }
-        '404': { $ref: '#/components/responses/NotFound' }
-  /tasks/{task_id}/display-trajectory:
-    get:
-      tags: [tasks]
-      summary: Display Trajectory（仅用于绘图的确定性降采样）
-      description: |
-        从完整 Replay Trajectory 派生。保留首点、末点和全部验收地标。
-        不是原始证据，也不是浏览器实时渲染 1,000,000 点的承诺。
-        回放时间轴、跳转和验收仍使用完整 Replay Trajectory。
-      operationId: getTaskDisplayTrajectory
-      parameters:
-        - $ref: '#/components/parameters/TaskId'
-      responses:
-        '200':
-          description: Display Trajectory
-          content:
-            application/json:
-              schema: { $ref: './domain.schema.json#/$defs/DisplayTrajectory' }
-        '404': { $ref: '#/components/responses/NotFound' }
-  /events:
-    get:
-      tags: [events]
-      summary: 异常事件查询
-      operationId: listEvents
-      parameters:
-        - { name: scene_id, in: query, schema: { type: string } }
-        - { name: task_id, in: query, schema: { type: string } }
-        - { name: status, in: query, schema: { type: string, enum: [open, acknowledged, resolved, false_positive] } }
-        - { name: severity, in: query, schema: { type: string, enum: [low, medium, high, critical] } }
-        - { name: type, in: query, schema: { type: string, enum: [crack, water_leakage, spalling, corrosion, equipment_fault, obstacle] } }
-        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 1000, default: 100 } }
-        - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
-      responses:
-        '200':
-          description: 事件数组（按检测时间倒序）
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: './domain.schema.json#/$defs/DetectionEvent' }
-  /events/export:
-    post:
-      tags: [events]
-      summary: 事件导出（CSV 或 JSON）
-      operationId: exportEvents
-      requestBody:
+      - name: scene_id
+        in: path
         required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/EventExportRequest' }
+        schema:
+          type: string
+          title: Scene Id
+      - name: scene_version_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scene Version Id
       responses:
         '200':
-          description: 导出文件（按请求 format 返回 text/csv 或 application/json）
+          description: Successful Response
           content:
-            text/csv:
-              schema: { type: string }
             application/json:
               schema:
-                type: array
-                items: { $ref: './domain.schema.json#/$defs/DetectionEvent' }
-  /events/{event_id}:
-    get:
-      tags: [events]
-      summary: 事件详情
-      operationId: getEvent
-      parameters:
-        - $ref: '#/components/parameters/EventId'
-      responses:
-        '200':
-          description: 事件详情
+                type: object
+                additionalProperties: true
+                title: Response Get Scene Metadata Api Scenes  Scene Id  Metadata
+                  Get
+        '422':
+          description: Validation Error
           content:
             application/json:
-              schema: { $ref: './domain.schema.json#/$defs/DetectionEvent' }
-        '404': { $ref: '#/components/responses/NotFound' }
-    patch:
-      tags: [events]
-      summary: 修改事件复核状态
-      description: 状态机 open → acknowledged → resolved | false_positive；非法迁移返回 409。
-      operationId: updateEventStatus
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/scenes/{scene_id}:
+    get:
+      summary: Get Scene
+      operationId: get_scene_api_scenes__scene_id__get
       parameters:
-        - $ref: '#/components/parameters/EventId'
-      requestBody:
+      - name: scene_id
+        in: path
         required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/EventStatusUpdate' }
+        schema:
+          type: string
+          title: Scene Id
       responses:
         '200':
-          description: 更新后的事件
+          description: Successful Response
           content:
             application/json:
-              schema: { $ref: './domain.schema.json#/$defs/DetectionEvent' }
-        '404': { $ref: '#/components/responses/NotFound' }
-        '409': { $ref: '#/components/responses/Conflict' }
-  /devices:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get Scene Api Scenes  Scene Id  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/tasks:
     get:
-      tags: [devices]
-      summary: 传感器设备列表
-      operationId: listDevices
+      summary: List Tasks
+      operationId: list_tasks_api_tasks_get
       parameters:
-        - { name: scene_id, in: query, schema: { type: string } }
-        - { name: type, in: query, schema: { type: string, enum: [delamination, displacement, convergence, stress, temperature, humidity, gas] } }
+      - name: scene_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scene Id
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - pending
+            - running
+            - completed
+            - completed_with_exceptions
+            - aborted
+            type: string
+          - type: 'null'
+          title: Status
+      - name: mode
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - simulation
+            - replay
+            - live_pending
+            type: string
+          - type: 'null'
+          title: Mode
+      - name: run_kind
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - demonstration
+            - recorded
+            type: string
+          - type: 'null'
+          title: Run Kind
       responses:
         '200':
-          description: 设备数组
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: './domain.schema.json#/$defs/SensorDevice' }
-  /devices/{device_id}/readings:
-    get:
-      tags: [devices]
-      summary: 设备模拟读数曲线
-      description: 确定性生成（正弦+定种子噪声）：相同参数必得相同结果。读数均为 simulated。
-      operationId: getDeviceReadings
-      parameters:
-        - { name: device_id, in: path, required: true, schema: { type: string } }
-        - { name: from, in: query, schema: { type: string, format: date-time }, description: "缺省为 to 前 1 小时" }
-        - { name: to, in: query, schema: { type: string, format: date-time }, description: 缺省为当前时间 }
-        - { name: interval_sec, in: query, schema: { type: integer, minimum: 1, maximum: 3600, default: 60 } }
-      responses:
-        '200':
-          description: 读数数组（按时间升序）
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: './domain.schema.json#/$defs/SensorReading' }
-        '404': { $ref: '#/components/responses/NotFound' }
-  /data-sources:
-    get:
-      tags: [data-sources]
-      summary: 数据来源状态（simulation / replay / live_pending）
-      operationId: listDataSources
-      responses:
-        '200':
-          description: 三种数据模式的状态数组。live_pending 固定为 reserved（预留，未接入）。
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: './domain.schema.json#/$defs/DataSourceStatus' }
-  /live/ingest:
-    post:
-      tags: [live]
-      summary: 甲方实时数据接入（live_pending，预留）
-      description: |
-        接口信封已定义，服务端恒返回 501。对应数据模式 live_pending：预留待接入，
-        待甲方协议确认后启用，不虚构真实接入。
-      operationId: ingestLive
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/LiveIngestEnvelope' }
-      responses:
-        '501':
-          description: 预留接口，尚未启用
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
-  /imports:
-    get:
-      tags: [imports]
-      summary: 已导入离线巡检包只读台账
-      description: |
-        不返回归档路径。导入只能通过服务器本机 CLI（python -m app.cli import-package）。
-        公共 HTTP 不能触发导入，也不是在线上传入口。
-      operationId: listRunBundleImports
-      responses:
-        '200':
-          description: 按导入时间倒序排列的安全状态投影
+          description: Successful Response
           content:
             application/json:
               schema:
                 type: array
                 items:
                   type: object
-                  required: [run_id, bundle_sha256, schema_version, source_kind, imported_at]
-                  properties:
-                    run_id: { type: string }
-                    bundle_sha256: { type: string }
-                    schema_version: { type: string }
-                    source_kind: { type: string }
-                    imported_at: { type: string, format: date-time }
-                    package_status:
-                      type: string
-                      nullable: true
-                      enum: [completed, completed_with_exceptions]
-                    run_kind:
-                      type: string
-                      nullable: true
-                      enum: [demonstration, recorded]
-                    acceptance_state:
-                      type: string
-                      nullable: true
-                      enum: [not_applicable, pending_acceptance, accepted, withdrawn]
-                    scene_version_id: { type: string, nullable: true }
-                    alignment_id: { type: string, nullable: true }
+                  additionalProperties: true
+                title: Response List Tasks Api Tasks Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/tasks/{task_id}:
+    get:
+      summary: Get Task
+      operationId: get_task_api_tasks__task_id__get
+      parameters:
+      - name: task_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Task Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get Task Api Tasks  Task Id  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/tasks/{task_id}/trajectory:
+    get:
+      summary: Get Task Trajectory
+      operationId: get_task_trajectory_api_tasks__task_id__trajectory_get
+      parameters:
+      - name: task_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Task Id
+      - name: from_seq
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: From Seq
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 1000000
+          minimum: 1
+          default: 10000
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: true
+                title: Response Get Task Trajectory Api Tasks  Task Id  Trajectory
+                  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/tasks/{task_id}/display-trajectory:
+    get:
+      summary: Get Task Display Trajectory
+      operationId: get_task_display_trajectory_api_tasks__task_id__display_trajectory_get
+      parameters:
+      - name: task_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Task Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get Task Display Trajectory Api Tasks  Task Id  Display
+                  Trajectory Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/events/export:
+    post:
+      summary: Export Events Post
+      operationId: export_events_post_api_events_export_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventExportRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      summary: Export Events
+      operationId: export_events_api_events_export_get
+      parameters:
+      - name: format
+        in: query
+        required: true
+        schema:
+          enum:
+          - csv
+          - json
+          type: string
+          title: Format
+      - name: scene_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scene Id
+      - name: task_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Id
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - open
+            - acknowledged
+            - resolved
+            - false_positive
+            type: string
+          - type: 'null'
+          title: Status
+      - name: severity
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - low
+            - medium
+            - high
+            - critical
+            type: string
+          - type: 'null'
+          title: Severity
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/events:
+    get:
+      summary: List Events
+      operationId: list_events_api_events_get
+      parameters:
+      - name: scene_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scene Id
+      - name: task_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Id
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - open
+            - acknowledged
+            - resolved
+            - false_positive
+            type: string
+          - type: 'null'
+          title: Status
+      - name: severity
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - low
+            - medium
+            - high
+            - critical
+            type: string
+          - type: 'null'
+          title: Severity
+      - name: type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - crack
+            - water_leakage
+            - spalling
+            - corrosion
+            - equipment_fault
+            - obstacle
+            type: string
+          - type: 'null'
+          title: Type
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 1000
+          minimum: 1
+          default: 100
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: true
+                title: Response List Events Api Events Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/events/{event_id}:
+    get:
+      summary: Get Event
+      operationId: get_event_api_events__event_id__get
+      parameters:
+      - name: event_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Event Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get Event Api Events  Event Id  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      summary: Update Event Status
+      operationId: update_event_status_api_events__event_id__patch
+      parameters:
+      - name: event_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Event Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventStatusUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Update Event Status Api Events  Event Id  Patch
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/devices:
+    get:
+      summary: List Devices
+      operationId: list_devices_api_devices_get
+      parameters:
+      - name: scene_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scene Id
+      - name: type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - delamination
+            - displacement
+            - convergence
+            - stress
+            - temperature
+            - humidity
+            - gas
+            type: string
+          - type: 'null'
+          title: Type
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: true
+                title: Response List Devices Api Devices Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/devices/{device_id}/readings:
+    get:
+      summary: Get Device Readings
+      operationId: get_device_readings_api_devices__device_id__readings_get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      - name: from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: From
+      - name: to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: To
+      - name: interval_sec
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 3600
+          minimum: 1
+          default: 60
+          title: Interval Sec
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: true
+                title: Response Get Device Readings Api Devices  Device Id  Readings
+                  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/data-sources:
+    get:
+      summary: List Data Sources
+      operationId: list_data_sources_api_data_sources_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  additionalProperties: true
+                  type: object
+                type: array
+                title: Response List Data Sources Api Data Sources Get
+  /api/live/ingest:
+    post:
+      summary: Ingest Live
+      operationId: ingest_live_api_live_ingest_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LiveIngestEnvelope'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/imports:
+    get:
+      summary: List Imports
+      description: Safe status projection; never returns archive paths.
+      operationId: list_imports_api_imports_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  additionalProperties: true
+                  type: object
+                type: array
+                title: Response List Imports Api Imports Get
+  /api/instruments/assets:
+    get:
+      tags:
+      - Instruments
+      summary: Assets
+      operationId: assets_api_instruments_assets_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+    post:
+      tags:
+      - Instruments
+      summary: Register
+      operationId: register_api_instruments_assets_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Asset'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/instruments/records/{kind}:
+    get:
+      tags:
+      - Instruments
+      summary: List Records
+      operationId: list_records_api_instruments_records__kind__get
+      parameters:
+      - name: kind
+        in: path
+        required: true
+        schema:
+          enum:
+          - observation
+          - localization
+          - asset_match
+          - station_attempt
+          - reading
+          - match_review
+          - station_evidence
+          - processing_report
+          type: string
+          title: Kind
+      - name: run_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - Instruments
+      summary: Put Record
+      operationId: put_record_api_instruments_records__kind__post
+      parameters:
+      - name: kind
+        in: path
+        required: true
+        schema:
+          enum:
+          - observation
+          - localization
+          - station_attempt
+          type: string
+          title: Kind
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              title: Payload
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/instruments/matches:
+    post:
+      tags:
+      - Instruments
+      summary: Match
+      operationId: match_api_instruments_matches_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchInput'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/instruments/reviews:
+    post:
+      tags:
+      - Instruments
+      summary: Review
+      operationId: review_api_instruments_reviews_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchReview'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/instruments/readings:
+    post:
+      tags:
+      - Instruments
+      summary: Reading
+      operationId: reading_api_instruments_readings_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReadingInput'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/instruments/history:
+    post:
+      tags:
+      - Instruments
+      summary: History
+      operationId: history_api_instruments_history_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HistoryBatch'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/instruments/assets/{asset_id}/analysis:
+    get:
+      tags:
+      - Instruments
+      summary: Analysis
+      operationId: analysis_api_instruments_assets__asset_id__analysis_get
+      parameters:
+      - name: asset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Asset Id
+      - name: at
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: At
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/instruments/observations/{observation_id}/analysis:
+    get:
+      tags:
+      - Instruments
+      summary: Observed Analysis
+      operationId: observed_analysis_api_instruments_observations__observation_id__analysis_get
+      parameters:
+      - name: observation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Observation Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/instruments/runs/{run_id}/reindex-stations:
+    post:
+      tags:
+      - Instruments
+      summary: Reindex Stations
+      operationId: reindex_stations_api_instruments_runs__run_id__reindex_stations_post
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/instruments/stations/{attempt_id}/captures/{sequence}/process:
+    post:
+      tags:
+      - Instruments
+      summary: Process Capture
+      operationId: process_capture_api_instruments_stations__attempt_id__captures__sequence__process_post
+      parameters:
+      - name: attempt_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Attempt Id
+      - name: sequence
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Sequence
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/instruments/pages/{kind}:
+    get:
+      tags:
+      - Instruments
+      summary: Record Page
+      operationId: record_page_api_instruments_pages__kind__get
+      parameters:
+      - name: kind
+        in: path
+        required: true
+        schema:
+          enum:
+          - observation
+          - localization
+          - asset_match
+          - station_attempt
+          - reading
+          - match_review
+          - station_evidence
+          - processing_report
+          type: string
+          title: Kind
+      - name: run_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+      - name: attempt_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Attempt Id
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 512
+          default: ''
+          title: Cursor
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 50
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/instruments/records/{kind}/{identity}:
+    get:
+      tags:
+      - Instruments
+      summary: Get Record
+      operationId: get_record_api_instruments_records__kind___identity__get
+      parameters:
+      - name: kind
+        in: path
+        required: true
+        schema:
+          enum:
+          - observation
+          - localization
+          - asset_match
+          - station_attempt
+          - reading
+          - match_review
+          - station_evidence
+          - processing_report
+          type: string
+          title: Kind
+      - name: identity
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Identity
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/instruments/runs/{run_id}/jobs:
+    post:
+      tags:
+      - Instruments
+      summary: Create Job
+      operationId: create_job_api_instruments_runs__run_id__jobs_post
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/instruments/jobs:
+    get:
+      tags:
+      - Instruments
+      summary: List Jobs
+      operationId: list_jobs_api_instruments_jobs_get
+      parameters:
+      - name: run_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 128
+          default: ''
+          title: Cursor
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/instruments/jobs/{job_id}:
+    get:
+      tags:
+      - Instruments
+      summary: Get Job
+      operationId: get_job_api_instruments_jobs__job_id__get
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Job Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/instruments/jobs/{job_id}/{action}:
+    post:
+      tags:
+      - Instruments
+      summary: Control Job
+      operationId: control_job_api_instruments_jobs__job_id___action__post
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Job Id
+      - name: action
+        in: path
+        required: true
+        schema:
+          enum:
+          - pause
+          - resume
+          - retry_failed
+          type: string
+          title: Action
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/instruments/jobs/{job_id}/items:
+    get:
+      tags:
+      - Instruments
+      summary: Job Items
+      operationId: job_items_api_instruments_jobs__job_id__items_get
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Job Id
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Cursor
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 50
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/instruments/jobs/{job_id}/events:
+    get:
+      tags:
+      - Instruments
+      summary: Job Events
+      operationId: job_events_api_instruments_jobs__job_id__events_get
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Job Id
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Cursor
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 50
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/instruments/asset-page:
+    get:
+      tags:
+      - Instruments
+      summary: Asset Page
+      operationId: asset_page_api_instruments_asset_page_get
+      parameters:
+      - name: scene_version_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scene Version Id
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 128
+          default: ''
+          title: Cursor
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 25
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/instruments/observations/{observation_id}/review-context:
+    get:
+      tags:
+      - Instruments
+      summary: Review Context
+      operationId: review_context_api_instruments_observations__observation_id__review_context_get
+      parameters:
+      - name: observation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Observation Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/instruments/observations/{observation_id}/match:
+    post:
+      tags:
+      - Instruments
+      summary: Match Observed
+      operationId: match_observed_api_instruments_observations__observation_id__match_post
+      parameters:
+      - name: observation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Observation Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
 components:
-  parameters:
-    SceneId: { name: scene_id, in: path, required: true, schema: { type: string } }
-    TaskId: { name: task_id, in: path, required: true, schema: { type: string } }
-    EventId: { name: event_id, in: path, required: true, schema: { type: string } }
-    BundleName: { name: bundle_name, in: path, required: true, schema: { type: string, minLength: 1 } }
   schemas:
-    ErrorResponse:
-      type: object
-      required: [error]
+    Asset:
       properties:
-        error:
+        asset_id:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Asset Id
+        name:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Name
+        scene_version_id:
+          type: string
+          minLength: 1
+          title: Scene Version Id
+        position:
+          $ref: '#/components/schemas/Position3D'
+        marker_family:
+          type: string
+          minLength: 1
+          title: Marker Family
+        marker_id:
+          type: integer
+          minimum: 0.0
+          title: Marker Id
+        marker_role:
+          type: string
+          const: instrument_proxy
+          title: Marker Role
+        match_tolerance_m:
+          type: number
+          exclusiveMinimum: 0.0
+          title: Match Tolerance M
+        units:
+          additionalProperties:
+            type: string
+          propertyNames:
+            enum:
+            - deep_base
+            - shallow_base
+            - delta
           type: object
-          required: [code, message]
-          properties:
-            code: { type: string }
-            message: { type: string }
-            details: { type: object }
-    EventStatusUpdate:
+          title: Units
+        thresholds:
+          additionalProperties:
+            additionalProperties:
+              type: number
+            type: object
+          propertyNames:
+            enum:
+            - deep_base
+            - shallow_base
+            - delta
+          type: object
+          title: Thresholds
+          default: {}
+        rule_version:
+          type: string
+          minLength: 1
+          title: Rule Version
+      additionalProperties: false
       type: object
-      required: [status]
+      required:
+      - asset_id
+      - name
+      - scene_version_id
+      - position
+      - marker_family
+      - marker_id
+      - marker_role
+      - match_tolerance_m
+      - units
+      - rule_version
+      title: Asset
+    DataLineage:
+      properties:
+        source:
+          type: string
+          enum:
+          - synthetic_fixture
+          - simulation
+          - replay
+          - live_pending
+          title: Source
+        producer:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Producer
+        producer_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Producer Version
+        derived_from:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Derived From
+      additionalProperties: false
+      type: object
+      required:
+      - source
+      - producer
+      - producer_version
+      - derived_from
+      title: DataLineage
+      description: 逐对象数据血缘：区分 synthetic_fixture / simulation / replay / live_pending。
+    EventExportRequest:
+      properties:
+        format:
+          type: string
+          enum:
+          - csv
+          - json
+          title: Format
+        scene_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scene Id
+        task_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Id
+        status:
+          anyOf:
+          - type: string
+            enum:
+            - open
+            - acknowledged
+            - resolved
+            - false_positive
+          - type: 'null'
+          title: Status
+        severity:
+          anyOf:
+          - type: string
+            enum:
+            - low
+            - medium
+            - high
+            - critical
+          - type: 'null'
+          title: Severity
+        type:
+          anyOf:
+          - type: string
+            enum:
+            - crack
+            - water_leakage
+            - spalling
+            - corrosion
+            - equipment_fault
+            - obstacle
+          - type: 'null'
+          title: Type
+      type: object
+      required:
+      - format
+      title: EventExportRequest
+    EventStatusUpdate:
       properties:
         status:
           type: string
-          enum: [acknowledged, resolved, false_positive]
-          x-provenance: simulated
-        comment: { type: string, x-provenance: simulated }
-        handled_by: { type: string, x-provenance: pending_confirmation, description: 处置人，账号体系待确认 }
-    EventExportRequest:
+          enum:
+          - acknowledged
+          - resolved
+          - false_positive
+          title: Status
+        comment:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Comment
+        handled_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Handled By
       type: object
-      required: [format]
+      required:
+      - status
+      title: EventStatusUpdate
+    HTTPValidationError:
       properties:
-        format: { type: string, enum: [csv, json] }
-        scene_id: { type: string }
-        task_id: { type: string }
-        status: { type: string, enum: [open, acknowledged, resolved, false_positive] }
-        severity: { type: string, enum: [low, medium, high, critical] }
-        type: { type: string, enum: [crack, water_leakage, spalling, corrosion, equipment_fault, obstacle] }
-    InspectionPackageManifest:
-      $ref: './inspection-package-v2.schema.json#/$defs/Manifest'
-    InspectionPackageTrajectory:
-      $ref: './inspection-package-v2.schema.json#/$defs/Trajectory'
-    InspectionPackageAcceptanceEvidence:
-      $ref: './inspection-package-v2.schema.json#/$defs/AcceptanceEvidence'
-    InstrumentObservation:
-      $ref: './domain.schema.json#/$defs/InstrumentObservation'
-    InstrumentLocalization:
-      $ref: './domain.schema.json#/$defs/InstrumentLocalization'
-    AssetMatch:
-      $ref: './domain.schema.json#/$defs/AssetMatch'
-    InstrumentReading:
-      $ref: './domain.schema.json#/$defs/InstrumentReading'
-    InspectionStation:
-      $ref: './domain.schema.json#/$defs/InspectionStation'
-    StationAttempt:
-      $ref: './domain.schema.json#/$defs/StationAttempt'
-    InspectionRunOutcome:
-      $ref: './domain.schema.json#/$defs/InspectionRunOutcome'
-    LiveIngestEnvelope:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
       type: object
-      description: 预留报文信封。字段映射待甲方协议确认（整体 pending_confirmation）。
-      required: [source_id, timestamp, payload]
+      title: HTTPValidationError
+    HistoryBatch:
       properties:
-        source_id: { type: string, x-provenance: pending_confirmation }
-        timestamp: { type: string, format: date-time, x-provenance: pending_confirmation }
-        payload:
+        run_id:
+          type: string
+          minLength: 1
+          title: Run Id
+        mapping:
+          $ref: '#/components/schemas/HistoryMapping'
+        source_type:
+          type: string
+          enum:
+          - replay
+          - simulation
+          title: Source Type
+        rows:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          maxItems: 10000
+          minItems: 1
+          title: Rows
+      additionalProperties: false
+      type: object
+      required:
+      - run_id
+      - mapping
+      - source_type
+      - rows
+      title: HistoryBatch
+    HistoryMapping:
+      properties:
+        mapping_version:
+          type: string
+          minLength: 1
+          title: Mapping Version
+        source_reference:
+          type: string
+          minLength: 1
+          title: Source Reference
+        timezone:
+          type: string
+          minLength: 1
+          title: Timezone
+        timestamp_field:
+          type: string
+          minLength: 1
+          title: Timestamp Field
+        asset_field:
+          type: string
+          minLength: 1
+          title: Asset Field
+        asset_ids:
+          additionalProperties:
+            type: string
           type: object
-          x-provenance: pending_confirmation
-          description: 原始报文，结构待甲方协议定义
-  responses:
-    BadRequest:
-      description: 巡检包格式、校验和或语义无效
-      content:
-        application/json:
-          schema: { $ref: '#/components/schemas/ErrorResponse' }
-    NotFound:
-      description: 资源不存在
-      content:
-        application/json:
-          schema: { $ref: '#/components/schemas/ErrorResponse' }
-    Conflict:
-      description: 状态或稳定标识内容冲突
-      content:
-        application/json:
-          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          title: Asset Ids
+        fields:
+          additionalProperties:
+            type: string
+          propertyNames:
+            enum:
+            - deep_base
+            - shallow_base
+            - delta
+          type: object
+          title: Fields
+        units:
+          additionalProperties:
+            type: string
+          propertyNames:
+            enum:
+            - deep_base
+            - shallow_base
+            - delta
+          type: object
+          title: Units
+        validity_seconds:
+          type: integer
+          maximum: 31536000.0
+          exclusiveMinimum: 0.0
+          title: Validity Seconds
+        quality_field:
+          type: string
+          minLength: 1
+          title: Quality Field
+        quality_values:
+          additionalProperties:
+            type: string
+            enum:
+            - good
+            - uncertain
+            - bad
+          type: object
+          title: Quality Values
+      additionalProperties: false
+      type: object
+      required:
+      - mapping_version
+      - source_reference
+      - timezone
+      - timestamp_field
+      - asset_field
+      - asset_ids
+      - fields
+      - units
+      - validity_seconds
+      - quality_field
+      - quality_values
+      title: HistoryMapping
+    InstrumentReading:
+      properties:
+        contract_version:
+          type: string
+          const: '0.3'
+          title: Contract Version
+        reading_id:
+          type: string
+          minLength: 1
+          title: Reading Id
+        run_id:
+          type: string
+          minLength: 1
+          title: Run Id
+        asset_id:
+          type: string
+          minLength: 1
+          title: Asset Id
+        captured_at:
+          type: string
+          minLength: 1
+          title: Captured At
+        metrics:
+          items:
+            $ref: '#/components/schemas/NamedMetric'
+          type: array
+          minItems: 1
+          title: Metrics
+        quality:
+          type: string
+          enum:
+          - good
+          - uncertain
+          - bad
+          title: Quality
+        valid_until:
+          anyOf:
+          - type: string
+            minLength: 1
+          - type: 'null'
+          title: Valid Until
+        source_type:
+          type: string
+          enum:
+          - simulation
+          - replay
+          - live_pending
+          title: Source Type
+        provenance:
+          $ref: '#/components/schemas/Provenance'
+        lineage:
+          $ref: '#/components/schemas/DataLineage'
+      additionalProperties: false
+      type: object
+      required:
+      - contract_version
+      - reading_id
+      - run_id
+      - asset_id
+      - captured_at
+      - metrics
+      - quality
+      - valid_until
+      - source_type
+      - provenance
+      - lineage
+      title: InstrumentReading
+      description: 仪器读数：一组命名指标；valid_until 过期后不得作为当前状态展示。
+    LiveIngestEnvelope:
+      properties:
+        source_id:
+          type: string
+          title: Source Id
+        timestamp:
+          type: string
+          format: date-time
+          title: Timestamp
+        payload:
+          additionalProperties: true
+          type: object
+          title: Payload
+      type: object
+      required:
+      - source_id
+      - timestamp
+      - payload
+      title: LiveIngestEnvelope
+      description: 预留报文信封，字段映射待甲方协议确认（整体 pending_confirmation）。
+    MatchInput:
+      properties:
+        localization_id:
+          type: string
+          title: Localization Id
+        marker_family:
+          type: string
+          title: Marker Family
+        marker_id:
+          type: integer
+          minimum: 0.0
+          title: Marker Id
+      additionalProperties: false
+      type: object
+      required:
+      - localization_id
+      - marker_family
+      - marker_id
+      title: MatchInput
+    MatchReview:
+      properties:
+        review_id:
+          type: string
+          minLength: 1
+          title: Review Id
+        match_id:
+          type: string
+          minLength: 1
+          title: Match Id
+        asset_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Asset Id
+        operator_label:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Operator Label
+        reason:
+          type: string
+          maxLength: 1000
+          minLength: 1
+          title: Reason
+        expected_review_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Expected Review Id
+      additionalProperties: false
+      type: object
+      required:
+      - review_id
+      - match_id
+      - asset_id
+      - operator_label
+      - reason
+      title: MatchReview
+    NamedMetric:
+      properties:
+        name:
+          type: string
+          enum:
+          - deep_base
+          - shallow_base
+          - delta
+          title: Name
+        value:
+          type: number
+          title: Value
+        unit:
+          type: string
+          minLength: 1
+          title: Unit
+      additionalProperties: false
+      type: object
+      required:
+      - name
+      - value
+      - unit
+      title: NamedMetric
+      description: 命名指标：深基点 / 浅基点 / 差值，不复用单一匿名 value 语义。
+    Position3D:
+      properties:
+        x:
+          type: number
+          title: X
+        y:
+          type: number
+          title: Y
+        z:
+          type: number
+          title: Z
+      additionalProperties: false
+      type: object
+      required:
+      - x
+      - y
+      - z
+      title: Position3D
+    Provenance:
+      properties:
+        source:
+          type: string
+          enum:
+          - simulation
+          - replay
+          - live_pending
+          title: Source
+        status:
+          type: string
+          enum:
+          - simulated
+          - pending_confirmation
+          - confirmed
+          title: Status
+      additionalProperties: false
+      type: object
+      required:
+      - source
+      - status
+      title: Provenance
+    ReadingInput:
+      properties:
+        reading:
+          $ref: '#/components/schemas/InstrumentReading'
+        mapping_version:
+          type: string
+          minLength: 1
+          title: Mapping Version
+        source_timezone:
+          type: string
+          minLength: 1
+          title: Source Timezone
+        source_reference:
+          type: string
+          minLength: 1
+          title: Source Reference
+        raw_fields:
+          additionalProperties: true
+          type: object
+          title: Raw Fields
+      additionalProperties: false
+      type: object
+      required:
+      - reading
+      - mapping_version
+      - source_timezone
+      - source_reference
+      - raw_fields
+      title: ReadingInput
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+    OperatorSession:
+      type: apiKey
+      in: cookie
+      name: astra_session
+servers:
+- url: /
+security:
+- BearerAuth: []
+- OperatorSession: []

@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 import asyncio
 from .processing_jobs import Worker
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Query, HTTPException
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -15,7 +15,8 @@ from .config import DEMO_DIR, Settings, assert_durable_paths
 from .db import Database
 from .errors import DEFAULT_CODES
 from .routers import datasources, devices, events, health, imports, live, scenes, tasks, instruments
-from .access import allowed, session_cookie
+from .access import identity, permitted, login_cookie, _current_identity
+from datetime import datetime, timezone
 import os
 from .run_bundle import ensure_import_directories, recover_incomplete_imports
 from .seed import seed_if_empty
@@ -23,15 +24,17 @@ from .simulation import SimulationEngine
 from .writer_lock import ImportWriterLock, WriterLockHeld, assert_single_api_process
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(settings: Settings | None = None, *, schema_only: bool = False) -> FastAPI:
     settings = settings or Settings.from_env()
     assert_durable_paths(settings)
     assert_single_api_process()
-    db = Database(settings.db_path)
-    engine = SimulationEngine(db, tick_ms=settings.sim_tick_ms, seed=settings.seed)
+    db = None if schema_only else Database(settings.db_path)
+    engine = None if schema_only else SimulationEngine(db, tick_ms=settings.sim_tick_ms, seed=settings.seed)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        if db is None or engine is None:
+            raise RuntimeError("Schema export application cannot serve requests")
         db.init_schema()
         seed_if_empty(db, DEMO_DIR)
         ensure_import_directories(settings.import_root)
@@ -60,19 +63,41 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.middleware("http")
     async def access_boundary(request: Request, call_next):
-        if request.url.path != "/api/health" and not allowed(request.scope, request.headers):
-            return JSONResponse(status_code=401, content={"error": {
-                "code": "authentication_required", "message": "需要授权；默认仅允许本机访问。"}})
-        return await call_next(request)
+        principal = identity(request.scope, request.headers)
+        if request.url.path != "/api/health" and not permitted(principal,request.scope):
+            return JSONResponse(status_code=403 if principal else 401, content={"error": {
+                "code": "access_denied", "message": "需要有效身份及对应操作权限。"}})
+        request.state.identity = principal
+        token = _current_identity.set(principal)
+        try:
+            response = await call_next(request)
+            if db is not None and principal and request.method not in {"GET","HEAD","OPTIONS"}:
+                db.execute("INSERT INTO access_audit(actor,role,method,path,status,created_at) VALUES(?,?,?,?,?,?)",
+                           (principal["id"],principal["role"],request.method,request.url.path,response.status_code,datetime.now(timezone.utc).isoformat()))
+            return response
+        finally:
+            _current_identity.reset(token)
 
     @app.post("/api/access/login")
     async def login(request: Request):
-        secret = os.environ.get("ASTRA_API_TOKEN", "")
-        response = JSONResponse({"authenticated": True, "identity_model": "shared_operator_secret"})
-        if secret:
-            response.set_cookie("astra_session", session_cookie(secret), httponly=True,
-                                secure=request.url.scheme == "https", samesite="strict", max_age=8*3600)
+        principal = request.state.identity
+        response = JSONResponse({"authenticated": True, "identity": principal})
+        try:
+            cookie = login_cookie(principal)
+        except (OSError, ValueError, StopIteration, KeyError) as exc:
+            raise HTTPException(401, "Credential changed; authenticate again") from exc
+        if cookie:
+            response.set_cookie("astra_session",cookie,httponly=True,secure=request.url.scheme=="https",samesite="strict",max_age=8*3600)
         return response
+
+    @app.get("/api/access/me")
+    async def current_user(request: Request):
+        return request.state.identity
+
+    @app.get("/api/access/audit")
+    async def audit_log(cursor: int = Query(default=0, ge=0), limit: int = Query(default=50, ge=1, le=100)):
+        rows = db.query_all("SELECT * FROM access_audit WHERE seq>? ORDER BY seq LIMIT ?", (cursor,limit+1))
+        return {"items":[dict(row) for row in rows[:limit]], "next_cursor":rows[limit-1]["seq"] if len(rows)>limit else None}
 
     @app.post("/api/access/logout")
     async def logout():
@@ -98,4 +123,4 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     return app
 
 
-app = create_app()
+app = create_app(schema_only=os.environ.get("FIELD_SCHEMA_EXPORT") == "1")

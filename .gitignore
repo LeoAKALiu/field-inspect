@@ -64,3 +64,10 @@ private/
 edge/ros2/install/
 edge/ros2/log/
 edge/ros2/vendor/
+
+# Deployment credentials stay outside the source tree
+.env
+.env.*
+!.env.example
+*.credentials.json
+*-token.txt

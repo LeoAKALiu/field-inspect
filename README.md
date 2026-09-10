@@ -12,12 +12,15 @@ Field Inspect 通过 U 盘将现场巡检记录交给服务器，保留轨迹、
 4. 网页选择现场实录运行，回放轨迹并核对首末帧和地标。导入成功不代表现场验收通过。
 5. 按归档、独立备份、人工验收顺序保存和清理数据。
 
-已有源码提供包校验、拒收隔离、导入恢复、历史回放、场景登记、验收撤销、备份和清理。新增停稳采集门槛、设备登记、观测关联、三通道历史导入与分析页面已接入，尚未执行功能测试，详见 [开发检查点](PROGRESS.md)。
+已有源码提供包校验、拒收隔离、导入恢复、历史回放、场景登记、验收撤销、备份和清理。停稳采集、站点证据、批量派生、条件位置估计、设备关联及人工复核、三通道历史读数与分析均已接入真实服务。支持暂停/续跑、逐项失败追溯、列表分页和按人员角色授权。尚未执行功能测试，详见 [软件交付矩阵](docs/development/DELIVERY_MATRIX.md)。
 
 现场适配包括 SCOUT、MID360、海康相机和 ROS 2。名称中立不代表支持所有硬件；本软件不提供矿用安全认证或已训练的通用无标记仪器识别模型。平台不参与车辆控制链。
 
 - [用户操作指南](docs/user/OPERATIONS.md)
 - [构建和部署](docs/development/BUILD.md)
+- [访问身份与角色](docs/development/ACCESS_CONTROL.md)
+- [批量处理和恢复](docs/development/PROCESSING_JOBS.md)
+- [实际 API 契约](packages/contracts/openapi.yaml)
 - [离线导入操作](docs/OFFLINE_IMPORT.md)
 - [来源和授权状态](THIRD_PARTY_NOTICES.md)
 

@@ -207,6 +207,8 @@ class Database:
             self._conn.executescript(SCHEMA)
             from .instruments import SCHEMA as INSTRUMENT_SCHEMA
             self._conn.executescript(INSTRUMENT_SCHEMA)
+            from .access import SCHEMA as ACCESS_SCHEMA
+            self._conn.executescript(ACCESS_SCHEMA)
             from .processing_jobs import SCHEMA as PROCESSING_SCHEMA
             self._conn.executescript(PROCESSING_SCHEMA)
             _ensure_columns(self._conn, "tasks", _TASK_COLUMNS)

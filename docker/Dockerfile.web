@@ -9,7 +9,7 @@ COPY apps/web/package.json ./apps/web/
 COPY packages/contracts/package.json ./packages/contracts/
 COPY packages/twin-viewer/package.json ./packages/twin-viewer/
 
-RUN pnpm install --frozen-lockfile 2>/dev/null || pnpm install
+RUN pnpm install --frozen-lockfile
 
 COPY apps/web ./apps/web
 COPY packages/contracts ./packages/contracts

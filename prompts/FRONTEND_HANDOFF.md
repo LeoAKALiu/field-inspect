@@ -2,7 +2,7 @@
 
 本机权威目录：C:/Projects/AstraInspect/product/astra-inspect；主开发分支 main。使用交接时实际 git rev-parse HEAD 结果建立独立 worktree，建议分支 frontend/refine；本轮未启动外部模型或创建前端工作区。
 
-真实路由：/ 总览、/inspection 三维、/playback 回放、/equipment 原演示设备、/review 问题复核、/integration 原接入、/instruments 新设备证据与三通道。新页直接请求 /api/instruments；访问授权也在此页。缺失的三维点选联动、自动站点转换不得画成已完成。示例来源仅 data/demo 与 data/contract-fixtures，全部为公开演示/契约夹具。
+真实路由：/ 总览、/inspection 三维、/playback 回放、/equipment 原演示设备、/review 问题复核、/integration 原接入、/instruments 新设备证据与三通道。新页直接请求 /api/instruments；访问授权也在此页。三维设备点选、自动站点转换、批次队列、证据详情、条件定位及人工关联复核已接入；不得把待复核画成已验收。示例来源仅 data/demo 与 data/contract-fixtures，全部为公开演示/契约夹具。
 
 先读 README、PROGRESS、docs/development/INSTRUMENT_API.md、实际路由与 client.ts。只编辑 apps/web 下界面；接口/鉴权/车端由 Codex 负责。先给方案再实现，不建立静态替代站，不调用测试。构建见 docs/development/BUILD.md。
 
@@ -63,3 +63,5 @@ StationEvidenceDetails 已连接真实 station_evidence / processing_report 和�
 新增 metric_estimates_need_review 报告状态和 localization_estimates：展示场景位置、候选像素 RMSE、条件标准差、同步上界和阻塞原因。三种误差单位/含义不同，不能合成一个精度百分比；保持 needs_review 文案。
 
 ProcessingJobsPanel 已接通持久队列：创建/打开、暂停/恢复、失败项重试、两秒状态更新与分页明细；站点/报告页已改游标分页。保留“处理结束不是验收通过”和“暂停等待当前项结束”的行为说明。
+
+最终软件候选已补齐人工复核表单、并发修改检查、资产/观测/站点分页及独立身份角色。OpenAPI 使用 services/api/scripts/export_openapi.py 从实际路由生成；先读 docs/development/DELIVERY_MATRIX.md。继续只在独立 worktree 优化真实 apps/web，不调用外部模型传输私有数据。

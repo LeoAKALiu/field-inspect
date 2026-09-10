@@ -1,0 +1,10 @@
+# Optional per-user credentials; FIELD_AUTH_FILE is a private host file.
+services:
+  api:
+    environment:
+      FIELD_AUTH_FILE: /run/field-inspect/users.json
+    volumes:
+      - type: bind
+        source: ${FIELD_AUTH_FILE:?Set an absolute private credential registry path}
+        target: /run/field-inspect/users.json
+        read_only: true

@@ -6,7 +6,7 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
     environment:
-      ASTRA_API_TOKEN: ${ASTRA_API_TOKEN:?Set a private operator secret before starting Docker}
+      ASTRA_API_TOKEN: ${ASTRA_API_TOKEN:-}
       TWIN_DB_PATH: /app/data/var/twin.db
       TWIN_IMPORT_ROOT: /app/data/imports
     volumes:

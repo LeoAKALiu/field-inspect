@@ -87,6 +87,7 @@ class MatchReview(StrictModel):
     asset_id: str | None
     operator_label: str = Field(min_length=1, max_length=100)
     reason: str = Field(min_length=1, max_length=1000)
+    expected_review_id: str | None = None
 
 
 class MatchInput(StrictModel):
@@ -112,6 +113,8 @@ def instant(value):
 
 
 def _audit(conn, action, object_id, digest, actor):
+    from .access import audit_actor
+    actor = audit_actor(actor)
     conn.execute("INSERT INTO instrument_audit(action,object_id,sha256,actor,created_at) VALUES(?,?,?,?,?)",
                  (action, object_id, digest, actor, datetime.now(timezone.utc).isoformat()))
 
@@ -215,22 +218,25 @@ def match_asset(db, request: MatchInput, actor):
 
 
 def review_match(db, request: MatchReview):
-    match = record(db, "asset_match", request.match_id)
-    if request.asset_id is not None:
-        row = db.query_one("SELECT payload FROM instrument_assets WHERE id=?", (request.asset_id,))
-        if row is None: raise ValueError("review must refer to a registered asset")
-        run = db.query_one("SELECT scene_version_id FROM tasks WHERE id=?", (match["run_id"],))
-        if json.loads(row["payload"])["scene_version_id"] != run["scene_version_id"]:
-            raise ValueError("review asset belongs to another scene version")
-    value = request.model_dump()
-    value["run_id"] = match["run_id"]
-    existing = db.query_one("SELECT payload FROM instrument_records WHERE kind='match_review' AND id=?", (request.review_id,))
-    if existing:
-        previous = json.loads(existing["payload"])
-        if any(previous[k] != v for k,v in value.items()): raise ValueError("review ID conflict")
-        return previous
-    value["reviewed_at"] = datetime.now(timezone.utc).isoformat()
-    return save(db, "match_review", request.review_id, match["run_id"], value, request.operator_label)
+    with db.transaction() as conn:
+        match = record(db, "asset_match", request.match_id)
+        if request.asset_id is not None:
+            row = db.query_one("SELECT payload FROM instrument_assets WHERE id=?", (request.asset_id,))
+            if row is None: raise ValueError("review must refer to a registered asset")
+            run = db.query_one("SELECT scene_version_id FROM tasks WHERE id=?", (match["run_id"],))
+            if json.loads(row["payload"])["scene_version_id"] != run["scene_version_id"]:
+                raise ValueError("review asset belongs to another scene version")
+        value = request.model_dump(); value["run_id"] = match["run_id"]
+        existing = conn.execute("SELECT payload FROM instrument_records WHERE kind='match_review' AND id=?", (request.review_id,)).fetchone()
+        if existing:
+            previous = json.loads(existing["payload"])
+            if any(previous.get(k) != v for k,v in value.items()): raise ValueError("review ID conflict")
+            return previous
+        latest = conn.execute("SELECT id FROM instrument_records WHERE kind='match_review' AND json_extract(payload,'$.match_id')=? ORDER BY rowid DESC LIMIT 1", (request.match_id,)).fetchone()
+        if (latest["id"] if latest else None) != request.expected_review_id:
+            raise ValueError("review changed; refresh the current decision before saving")
+        value["reviewed_at"] = datetime.now(timezone.utc).isoformat()
+        return save(db, "match_review", request.review_id, match["run_id"], value, request.operator_label, conn=conn)
 
 
 def save_reading(db, payload: ReadingInput, actor):
@@ -271,7 +277,7 @@ def analyze(db, asset_id, at):
     history = [x for x in records(db, "reading") if x["reading"]["asset_id"] == asset_id]
     past = sorted([x for x in history if instant(x["reading"]["captured_at"]) <= moment],
                   key=lambda x: instant(x["reading"]["captured_at"]))
-    response = {"asset_id": asset_id, "at": at, "rule_version": asset["rule_version"],
+    response = {"asset_id": asset_id, "asset": asset, "at": at, "rule_version": asset["rule_version"],
                 "recommendation": "review", "status": "missing", "reading": None,
                 "channels": [], "history": past, "excluded": []}
     response["excluded"] = [{"reading_id": x["reading"]["reading_id"], "reason": "future"}

@@ -15,3 +15,13 @@ twin.db
 **/twin.db
 .DS_Store
 playwright-report
+
+private
+data/imports
+data/var
+**/*.bundle
+**/*.sqlite*
+.env
+.env.*
+**/*credentials*.json
+**/*token*.txt

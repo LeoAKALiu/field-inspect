@@ -10,10 +10,10 @@ COPY services/api/src ./src
 COPY services/api/app ./app
 COPY packages/contracts/python /app/packages/contracts/python
 COPY data/demo /app/data/demo
-COPY data/imports /app/data/imports
-COPY data/var /app/data/var
+RUN mkdir -p /app/data/imports /app/data/var
+COPY services/api/scripts ./scripts
 
-RUN uv sync --no-dev
+RUN uv sync --frozen --no-dev
 
 ENV PATH="/app/services/api/.venv/bin:$PATH"
 ENV PYTHONPATH="/app/services/api"
