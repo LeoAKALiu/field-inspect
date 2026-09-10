@@ -6,9 +6,12 @@ type Evidence = { attempt_id: string; execution_id: string; artifact_sha256: str
   mcap_range: { start_ns: number; end_ns: number; bounds_kind: string }; captures: Capture[] };
 type Report = { report_id: string; attempt_id: string; capture_attempt_seq: number;
   status: string; gaps: string[]; observations: string[];
+  localization_estimates?: { observation_id: string; marker_id: number; status: string; reason: string;
+    position?: { x: number; y: number; z: number }; candidate_reprojection_rmse_px?: number[];
+    conditional_max_position_std_m?: number; timing_displacement_bound_m?: number }[];
   detections: { observation_id: string; dictionary: string; marker_id: number }[] };
 const states: Record<string, string> = { started: '已开始', captured: '图片已持久化', failed: '采集失败',
-  blocked: '缺少输入', observed_2d: '已生成二维观测，尚未定位', no_configured_marker_detected: '未发现已配置标记' };
+  metric_estimates_need_review: '已生成米制估计，待现场复核', blocked: '缺少输入', observed_2d: '已生成二维观测，尚未定位', no_configured_marker_detected: '未发现已配置标记' };
 
 export function StationEvidenceDetails({ runId, attemptId }: { runId: string; attemptId: string }) {
   const [evidence, setEvidence] = useState<Evidence | null>(null);
@@ -55,12 +58,20 @@ export function StationEvidenceDetails({ runId, attemptId }: { runId: string; at
         {c.state === 'captured' && <button disabled={busy} onClick={() => process(c.capture_attempt_seq)}>
           {busy ? '正在校验归档并处理…' : '派生标记观测'}</button>}
       </div>)}
-      <p>原图保留在本地归档。标记代理不等于通用仪器识别，二维检测不确认三维位置或设备身份。</p>
+      <p>原图保留在本地归档。标记代理不等于通用仪器识别，二维检测不确认设备身份；米制估计也须现场复核。</p>
     </>}
     {reports.map(report => <article key={report.report_id}>
       <h4>采集第 {report.capture_attempt_seq} 次：{states[report.status] ?? report.status}</h4>
       {report.gaps.length > 0 && <><p>待补齐输入 / 能力：</p><ul>{report.gaps.map(gap => <li key={gap}>{gap}</li>)}</ul></>}
       <p>观测数：{report.observations.length}；保持待复核。</p>
+      {report.localization_estimates?.map(estimate => <div key={estimate.observation_id} style={{ marginBottom: 16 }}>
+        <p>标记 {estimate.marker_id}：{estimate.status === 'estimated_needs_review' ? '米制位置估计（待复核）' : '未输出位置'} · {estimate.reason}</p>
+        {estimate.position && <p>场景坐标（米）：X {estimate.position.x.toFixed(3)} / Y {estimate.position.y.toFixed(3)} / Z {estimate.position.z.toFixed(3)}</p>}
+        {estimate.candidate_reprojection_rmse_px && <p>候选重投影 RMSE（像素）：{estimate.candidate_reprojection_rmse_px.map(v => v.toFixed(3)).join(' / ')}</p>}
+        {estimate.conditional_max_position_std_m !== undefined && <p>模型条件下最大轴标准差：{estimate.conditional_max_position_std_m.toFixed(4)} 米</p>}
+        {estimate.timing_displacement_bound_m !== undefined && <p>声明速度边界下的同步位移上界：{estimate.timing_displacement_bound_m.toFixed(4)} 米</p>}
+        <small>上述数值不是实测位置残差或精度保证；保留标定、独立误差与小扰动假设，需现场复核。</small>
+      </div>)}
       {report.detections.map(d => <p key={d.observation_id}>{d.dictionary} / {d.marker_id} · {d.observation_id}</p>)}
     </article>)}
   </section>;

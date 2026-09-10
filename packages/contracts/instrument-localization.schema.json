@@ -1,0 +1,177 @@
+{
+  "$defs": {
+    "MarkerMeasurement": {
+      "additionalProperties": false,
+      "properties": {
+        "physical_size_m": {
+          "exclusiveMinimum": 0,
+          "title": "Physical Size M",
+          "type": "number"
+        },
+        "size_sigma_m": {
+          "exclusiveMinimum": 0,
+          "title": "Size Sigma M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "physical_size_m",
+        "size_sigma_m"
+      ],
+      "title": "MarkerMeasurement",
+      "type": "object"
+    },
+    "TransformUncertainty": {
+      "additionalProperties": false,
+      "properties": {
+        "extrinsic_position_sigma_m": {
+          "exclusiveMinimum": 0,
+          "title": "Extrinsic Position Sigma M",
+          "type": "number"
+        },
+        "extrinsic_rotation_sigma_rad": {
+          "exclusiveMinimum": 0,
+          "title": "Extrinsic Rotation Sigma Rad",
+          "type": "number"
+        },
+        "alignment_position_sigma_m": {
+          "exclusiveMinimum": 0,
+          "title": "Alignment Position Sigma M",
+          "type": "number"
+        },
+        "alignment_rotation_sigma_rad": {
+          "exclusiveMinimum": 0,
+          "title": "Alignment Rotation Sigma Rad",
+          "type": "number"
+        }
+      },
+      "required": [
+        "extrinsic_position_sigma_m",
+        "extrinsic_rotation_sigma_rad",
+        "alignment_position_sigma_m",
+        "alignment_rotation_sigma_rad"
+      ],
+      "title": "TransformUncertainty",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source_reference": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Source Reference",
+      "type": "string"
+    },
+    "scene_version_id": {
+      "minLength": 1,
+      "title": "Scene Version Id",
+      "type": "string"
+    },
+    "alignment_id": {
+      "minLength": 1,
+      "title": "Alignment Id",
+      "type": "string"
+    },
+    "alignment_evidence_sha256": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Alignment Evidence Sha256",
+      "type": "string"
+    },
+    "camera_calibration_sha256": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Camera Calibration Sha256",
+      "type": "string"
+    },
+    "extrinsic_sha256": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Extrinsic Sha256",
+      "type": "string"
+    },
+    "scene_alignment_sha256": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Scene Alignment Sha256",
+      "type": "string"
+    },
+    "max_pose_gap_seconds": {
+      "exclusiveMinimum": 0,
+      "maximum": 0.5,
+      "title": "Max Pose Gap Seconds",
+      "type": "number"
+    },
+    "image_model_sigma_px": {
+      "exclusiveMinimum": 0,
+      "title": "Image Model Sigma Px",
+      "type": "number"
+    },
+    "max_reprojection_rmse_px": {
+      "exclusiveMinimum": 0,
+      "title": "Max Reprojection Rmse Px",
+      "type": "number"
+    },
+    "ambiguity_margin_px": {
+      "exclusiveMinimum": 0,
+      "title": "Ambiguity Margin Px",
+      "type": "number"
+    },
+    "max_position_std_m": {
+      "exclusiveMinimum": 0,
+      "title": "Max Position Std M",
+      "type": "number"
+    },
+    "max_timing_displacement_m": {
+      "exclusiveMinimum": 0,
+      "title": "Max Timing Displacement M",
+      "type": "number"
+    },
+    "max_linear_speed_mps": {
+      "exclusiveMinimum": 0,
+      "title": "Max Linear Speed Mps",
+      "type": "number"
+    },
+    "max_angular_speed_radps": {
+      "exclusiveMinimum": 0,
+      "title": "Max Angular Speed Radps",
+      "type": "number"
+    },
+    "uncertainty": {
+      "$ref": "#/$defs/TransformUncertainty"
+    },
+    "markers": {
+      "additionalProperties": {
+        "$ref": "#/$defs/MarkerMeasurement"
+      },
+      "maxProperties": 512,
+      "minProperties": 1,
+      "title": "Markers",
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "source_reference",
+    "scene_version_id",
+    "alignment_id",
+    "alignment_evidence_sha256",
+    "camera_calibration_sha256",
+    "extrinsic_sha256",
+    "scene_alignment_sha256",
+    "max_pose_gap_seconds",
+    "image_model_sigma_px",
+    "max_reprojection_rmse_px",
+    "ambiguity_margin_px",
+    "max_position_std_m",
+    "max_timing_displacement_m",
+    "max_linear_speed_mps",
+    "max_angular_speed_radps",
+    "uncertainty",
+    "markers"
+  ],
+  "title": "LocalizationPolicy",
+  "type": "object"
+}

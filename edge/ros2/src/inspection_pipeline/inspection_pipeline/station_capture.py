@@ -92,7 +92,7 @@ class StationCapture:
         stamp = message.header.stamp.sec*1_000_000_000 + message.header.stamp.nanosec
         covariance = [message.pose.covariance[i] for i in (0, 7, 14)]
         valid = (message.header.frame_id == expected_frame and stamp > self.last_stamp
-            and all(math.isfinite(v) for v in values + covariance)
+            and all(math.isfinite(v) for v in values + list(message.pose.covariance))
             and all(0 <= v <= 0.04 for v in covariance)
             and math.sqrt(sum(v*v for v in values[:3])) <= 0.02
             and math.sqrt(sum(v*v for v in values[3:6])) <= 0.02)
@@ -110,7 +110,8 @@ class StationCapture:
         if valid:
             self.last_pose = {"frame_id": message.header.frame_id, "child_frame_id": message.child_frame_id,
                 "position": dict(zip(("x", "y", "z"), values[6:9])),
-                "orientation_xyzw": q, "position_variance_m2": covariance}
+                "orientation_xyzw": q, "position_variance_m2": covariance,
+                "covariance_6x6": list(message.pose.covariance)}
         else:
             self.last_pose = None
         if not valid:
@@ -145,7 +146,7 @@ class StationCapture:
             with (self.directory / "frame.png").open("xb") as stream:
                 stream.write(payload); stream.flush(); os.fsync(stream.fileno())
             with (self.directory / "source.json").open("x", encoding="utf-8") as stream:
-                json.dump({"schema_version": "1.1", "image_header_stamp_ns": stamp, "frame_id": message.header.frame_id,
+                json.dump({"schema_version": "1.2", "image_header_stamp_ns": stamp, "frame_id": message.header.frame_id,
                            "encoding": message.encoding, "pose_header_stamp_ns": self.last_stamp,
                            "pose": self.last_pose, "pose_method": "latest_measured_odometry",
                            "image_pose_gap_ns": abs(stamp-self.last_stamp)}, stream)

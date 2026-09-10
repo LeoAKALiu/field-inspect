@@ -8,7 +8,7 @@ from .domain_contract import InstrumentObservation, InstrumentLocalization
 from .instruments import encoded, instant, record, save
 from .writer_lock import ImportWriterLock
 
-VERSION = "marker-proxy-2d-v1"
+VERSION = "marker-proxy-metric-v2"
 
 
 def process(db, attempt_id, capture_sequence):
@@ -71,9 +71,6 @@ def _process(db, evidence, ledger, archive, sequence):
             raise ValueError("processing configuration must contain JSON objects")
         if camera.get("verified") is not True:
             gaps.append("camera_calibration_not_verified")
-        if not source.get("pose"):
-            gaps.append("localization:complete_capture_pose_missing")
-        gaps.append("localization:metric_pose_solver_and_uncertainty_not_available")
         if camera.get("verified") is True:
             import cv2
             import numpy as np
@@ -93,6 +90,8 @@ def _process(db, evidence, ledger, archive, sequence):
             if matrix.size != 9 or not np.isfinite(matrix).all() or distortion.size not in {4,5,8,12,14} or not np.isfinite(distortion).all():
                 raise ValueError("invalid camera calibration arrays")
             matrix = matrix.reshape(3,3)
+            if not np.allclose(matrix[2], [0,0,1]) or abs(matrix[0,1]) > 1e-10 or abs(matrix[1,0]) > 1e-10:
+                raise ValueError("supported camera model requires zero skew and standard intrinsic bottom row")
             if matrix[0,0] <= 0 or matrix[1,1] <= 0:
                 raise ValueError("camera focal lengths must be positive")
             raw_image = read(folder + "/frame.png", 32*1024*1024)
@@ -121,6 +120,11 @@ def _process(db, evidence, ledger, archive, sequence):
             common = {"contract_version": "0.3", "run_id": manifest.run_id, "source_type": source_type,
                 "provenance": {"source": source_type, "status": "pending_confirmation" if source_type == "replay" else "simulated"},
                 "lineage": {"source": source_type, "producer": VERSION, "producer_version": cv2.__version__, "derived_from": report_id}}
+            from . import marker_localization
+            localization_context, localization_gaps = marker_localization.prepare(read, inventory, manifest, source)
+            gaps.extend(localization_gaps)
+            report["input_sha256"].update({path: inventory[path] for path in marker_localization.FILES if path in inventory})
+            report["localization_estimates"] = []
             detections = [] if detected_ids is None else list(zip(detected_ids.flatten().tolist(), corners))
             # Stable ordering retains multiple occurrences of the same marker for review.
             detections.sort(key=lambda item: (item[0], item[1].flatten().tolist()))
@@ -135,14 +139,19 @@ def _process(db, evidence, ledger, archive, sequence):
                         "x_max": float(hi[0]/width), "y_max": float(hi[1]/height), "image_width": width, "image_height": height},
                     "detector": {"kind": "marker_proxy", "version": VERSION + "/opencv-" + cv2.__version__},
                     "confidence": 0, "calibration_ref": "sha256:" + inventory["config/camera_calibration.json"]}).model_dump(mode="json")
+                estimate = marker_localization.locate(localization_context, marker_id, points, matrix, distortion)
+                report["localization_estimates"].append({"observation_id": observation_id, "marker_id": marker_id, **estimate})
                 local = InstrumentLocalization.model_validate({**common, "localization_id": observation_id + "-local",
-                    "observation_id": observation_id, "status": "unmatched", "position": None, "heading_deg": None,
-                    "method": "2d_only_metric_localization_unavailable", "residual_m": None}).model_dump(mode="json")
+                    "observation_id": observation_id, "status": "needs_review" if estimate.get("position") else "unmatched",
+                    "position": estimate.get("position"), "heading_deg": None,
+                    "method": estimate.get("method", "metric_input_unavailable"), "residual_m": None}).model_dump(mode="json")
                 objects.extend([("observation", observation_id, observation), ("localization", local["localization_id"], local)])
                 report["observations"].append(observation_id)
                 report["detections"].append({"observation_id": observation_id, "dictionary": dictionary, "marker_id": marker_id,
                     "corners_px": points.tolist()})
             report["status"] = "observed_2d" if objects else "no_configured_marker_detected"
+            if any(e["status"] == "estimated_needs_review" for e in report["localization_estimates"]):
+                report["status"] = "metric_estimates_need_review"
             report["opencv_version"] = cv2.__version__
             report["input_sha256"].update({path: inventory[path] for path in required})
     with db.transaction() as conn:

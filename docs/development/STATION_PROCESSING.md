@@ -18,7 +18,7 @@ POST `/api/instruments/stations/{attempt_id}/captures/{sequence}/process` 只读
 
 缺少输入时保存 blocked 报告；无匹配标记时保存 no_configured_marker_detected，不补造观测。识别成功时保存现有 v0.3 InstrumentObservation 和无位置的 InstrumentLocalization。没有经过校准的检测概率，因此 confidence 固定为保守的 0，避免被既有自动匹配门槛误认为高置信结果。它不是模型输出概率。状态保持待复核，不能用来宣称通用仪器识别或确定设备身份。
 
-本阶段仅完成二维 marker_proxy 派生。米制定位仍需真实标记尺寸、相机外参、场景变换、帧与位姿同步校验，以及定位误差的明确计算方法。不可把像素重投影误差当作 residual_m。
+二维派生之后已接入可选米制估计，输入和误差模型见 METRIC_LOCALIZATION.md。缺少尺寸、外参或完整协方差时仍仅保留二维观测。不可把像素重投影误差当作 residual_m。
 
 车端 source.json 1.1 新增完整 odometry 位姿、父子 frame、位置方差、image_pose_gap_ns 和 latest_measured_odometry 方法名。它是与图像相邻的最新测量，不是插值位姿，也不是场景坐标下的定位结果。旧档案只有时间戳时准确报告 complete_capture_pose_missing。
 
@@ -27,3 +27,5 @@ POST `/api/instruments/stations/{attempt_id}/captures/{sequence}/process` 只读
 按锁文件安装服务端依赖；新增 opencv-python-headless 4.11.0.86 和 NumPy，不安装 GUI OpenCV。依赖来源显式固定 PyPI，保留原有依赖版本。前端站点列表中的“查看采集证据”可查看每次重试和处理报告；“派生标记观测”会读取整个归档校验完整性，耗时随包大小变化。
 
 全部单元、集成、E2E、性能与实车测试未执行；也没有执行图片检测或处理接口。编译不等于功能验收。
+
+source.json 1.2 进一步保留完整 ROS pose.covariance_6x6，服务端处理版本已升级为 marker-proxy-metric-v2，旧处理报告保留。

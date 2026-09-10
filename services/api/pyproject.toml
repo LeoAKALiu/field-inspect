@@ -12,6 +12,7 @@ dependencies = [
     "pydantic>=2.10.0",
     "pydantic-settings>=2.6.0",
     "opencv-python-headless==4.11.0.86",
+    "pyyaml==6.0.3",
 ]
 
 [project.optional-dependencies]
