@@ -304,7 +304,7 @@ def _build_semantic_manifest(
     if not isinstance(git_commit, str) or not re.fullmatch(r"unknown|[a-f0-9]{7,40}", git_commit):
         raise BundleExportError("git_commit must be unknown or a 7-40 character lowercase hash")
 
-    bundle_name = name or f"Astra Inspect run {run_id}"
+    bundle_name = name or f"Field Inspect run {run_id}"
     if not bundle_name.strip() or len(bundle_name) > 200:
         raise BundleExportError("name must contain 1-200 characters")
 

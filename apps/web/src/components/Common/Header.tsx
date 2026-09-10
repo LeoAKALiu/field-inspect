@@ -44,7 +44,7 @@ export const Header: React.FC = () => {
         <div className="logo-icon-box">
           <Layers size={20} />
         </div>
-        <h1 className="main-title">Astra Inspect｜星巡</h1>
+        <h1 className="main-title">Field Inspect</h1>
       </div>
 
       <nav className="header-nav">

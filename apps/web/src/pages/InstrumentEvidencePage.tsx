@@ -72,7 +72,7 @@ export function InstrumentEvidencePage() {
   function download() {
     const blob = new Blob([JSON.stringify(analysis, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob); const anchor = document.createElement('a');
-    anchor.href = url; anchor.download = 'astra-instrument-report.json'; anchor.click(); URL.revokeObjectURL(url);
+    anchor.href = url; anchor.download = 'field-instrument-report.json'; anchor.click(); URL.revokeObjectURL(url);
   }
 
   const chosen = assets.find(a => a.asset_id === selected);

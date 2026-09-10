@@ -1,4 +1,4 @@
-# Astra Inspect 开发检查点
+# Field Inspect 开发检查点
 
 更新时间：2026-09-10，ProArt / Codex。本文件与当前源码同批提交，精确 HEAD 见 git rev-parse HEAD；iCloud 检查点另附实际提交号。
 
@@ -29,7 +29,7 @@
 
 ## 发布边界
 
-公开仓库：https://github.com/LeoAKALiu/astra-inspect（已创建，干净快照发布由本阶段完成）。私有开发 main 包含筛选前的配置，不得推送！只推 public-main 的审核快照到远端 main，首次提交无父历史，后续公开快照只以已公开提交为父节点。
+公开仓库：https://github.com/LeoAKALiu/field-inspect（已创建，干净快照发布由本阶段完成）。私有开发 main 包含筛选前的配置，不得推送！只推 public-main 的审核快照到远端 main，首次提交无父历史，后续公开快照只以已公开提交为父节点。
 
 保留 UNLICENSED 和各子包现有许可，没有擅自为整个产品声明 MIT。bundle、源仓库 Git 历史、客户数据、私有标定和内部资料不发布。
 
@@ -40,3 +40,7 @@
 3. 多用户身份与细分权限尚未完成，当前仅共享操作密钥，自报标签不是已认证个人。
 4. 客户数据库尚未访问；真实映射、单位、阈值需私有审计。通用无标记识别缺训练数据；现场标定、PTP、完整路线与长时采集需另行输入/验收。
 5. M0—M7 不是全部完成；以上新增功能全部尚未测试。前端优化仅准备交接，未调用外部模型。
+
+## 仓库更名
+
+按用户选择，GitHub 仓库改为 LeoAKALiu/field-inspect，项目显示名称改为 Field Inspect；本地 public 远端同步更新。原本地工作路径继续有效。历史数据的 producer、内部 Python 包名和已有环境变量保留兼容；本轮未执行测试。

@@ -1,8 +1,8 @@
 {
-  "name": "astra-inspect",
+  "name": "field-inspect",
   "version": "0.1.0",
   "private": true,
-  "description": "Astra Inspect | Offline inspection evidence and historical replay",
+  "description": "Field Inspect | Offline inspection evidence and historical replay",
   "scripts": {
     "dev": "pnpm --parallel --filter @digital-twin/web --filter @digital-twin/api dev",
     "dev:web": "pnpm --filter @digital-twin/web dev",

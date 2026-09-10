@@ -31,7 +31,7 @@ export default function App() {
           </Routes>
         </main>
 
-        <footer className="app-footer-strip">Astra Inspect｜开发候选 · 新功能未测试</footer>
+        <footer className="app-footer-strip">Field Inspect｜开发候选 · 新功能未测试</footer>
       </div>
     </DataSourceProvider>
   );

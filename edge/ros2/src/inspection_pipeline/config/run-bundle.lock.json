@@ -2,7 +2,7 @@
   "schema_version": "2.0",
   "transport": "usb_bagit_directory",
   "authority": {
-    "repository": "astra-inspect",
+    "repository": "field-inspect",
     "schema_path": "packages/contracts/inspection-package-v2.schema.json",
     "schema_sha256": "77b1732f4f3f63cdf96d27bdb7edd3376a6fe2582f2d26458ea9c894c6d1df97"
   },

@@ -43,7 +43,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         db.close()
 
     app = FastAPI(
-        title="Astra Inspect | 星巡 API",
+        title="Field Inspect API",
         version="0.1.0",
         lifespan=lifespan,
     )
