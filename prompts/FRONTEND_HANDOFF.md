@@ -61,3 +61,5 @@ TaskPlaybackPage 已接入 RunStationPanel 和 RunAssetEvidence/useRunAssets。�
 StationEvidenceDetails 已连接真实 station_evidence / processing_report 和单次采集 process API，包含 blocked、observed_2d、no_configured_marker_detected 状态。优化页面时保留具体输入缺口、路线/采集序号区别、无三维定位和未校准置信度提示；不要把二维观测美化成已匹配设备。
 
 新增 metric_estimates_need_review 报告状态和 localization_estimates：展示场景位置、候选像素 RMSE、条件标准差、同步上界和阻塞原因。三种误差单位/含义不同，不能合成一个精度百分比；保持 needs_review 文案。
+
+ProcessingJobsPanel 已接通持久队列：创建/打开、暂停/恢复、失败项重试、两秒状态更新与分页明细；站点/报告页已改游标分页。保留“处理结束不是验收通过”和“暂停等待当前项结束”的行为说明。

@@ -17,29 +17,34 @@ export function StationEvidenceDetails({ runId, attemptId }: { runId: string; at
   const [evidence, setEvidence] = useState<Evidence | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
   const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
+  const [reportRevision, setReportRevision] = useState(0);
+  const [cursors, setCursors] = useState<string[]>(['']);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const cursor = cursors[cursors.length - 1];
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     const controller = new AbortController();
-    async function get<T,>(kind: string): Promise<T> {
-      const response = await fetch(`/api/instruments/records/${kind}?run_id=${encodeURIComponent(runId)}`, { signal: controller.signal });
+    async function get<T,>(path: string): Promise<T> {
+      const response = await fetch(`/api/instruments/${path}`, { signal: controller.signal });
       if (!response.ok) throw new Error(`证据读取失败 (${response.status})`);
       return response.json() as Promise<T>;
     }
     setLoaded(false); setError(''); setEvidence(null); setReports([]);
-    Promise.all([get<Evidence[]>('station_evidence'), get<Report[]>('processing_report')])
+    Promise.all([get<Evidence>(`records/station_evidence/${encodeURIComponent(attemptId)}`),
+      get<{ items: Report[]; next_cursor: string | null }>(`pages/processing_report?run_id=${encodeURIComponent(runId)}&attempt_id=${encodeURIComponent(attemptId)}&limit=10&cursor=${encodeURIComponent(cursor ?? '')}`)])
       .then(([items, results]) => { if (!controller.signal.aborted) {
-        setEvidence(items.find(item => item.attempt_id === attemptId) ?? null);
-        setReports(results.filter(item => item.attempt_id === attemptId)); setLoaded(true);
+        setEvidence(items);
+        setReports(results.items); setNextCursor(results.next_cursor); setLoaded(true);
       } }).catch(e => { if (!controller.signal.aborted) setError(String(e.message)); });
     return () => controller.abort();
-  }, [runId, attemptId]);
+  }, [runId, attemptId, cursor, reportRevision]);
   async function process(sequence: number) {
     setBusy(true); setError('');
     try {
       const response = await fetch(`/api/instruments/stations/${encodeURIComponent(attemptId)}/captures/${sequence}/process`, { method: 'POST' });
       const value = await response.json();
       if (!response.ok) throw new Error(value.error?.message ?? (typeof value.detail === 'string' ? value.detail : `处理失败 (${response.status})`));
-      setReports(previous => [...previous.filter(r => r.report_id !== value.report_id), value as Report]);
+      setCursors(['']); setReportRevision(v => v+1);
     } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
     finally { setBusy(false); }
   }
@@ -60,6 +65,8 @@ export function StationEvidenceDetails({ runId, attemptId }: { runId: string; at
       </div>)}
       <p>原图保留在本地归档。标记代理不等于通用仪器识别，二维检测不确认设备身份；米制估计也须现场复核。</p>
     </>}
+    <div><button disabled={busy} onClick={() => { setCursors(['']); setReportRevision(v => v+1); }}>刷新报告</button><button disabled={cursors.length === 1 || !loaded} onClick={() => setCursors(value => value.slice(0,-1))}>上一页报告</button>
+      <span> 第 {cursors.length} 页 </span><button disabled={!nextCursor || !loaded} onClick={() => nextCursor && setCursors(value => [...value,nextCursor])}>下一页报告</button></div>
     {reports.map(report => <article key={report.report_id}>
       <h4>采集第 {report.capture_attempt_seq} 次：{states[report.status] ?? report.status}</h4>
       {report.gaps.length > 0 && <><p>待补齐输入 / 能力：</p><ul>{report.gaps.map(gap => <li key={gap}>{gap}</li>)}</ul></>}

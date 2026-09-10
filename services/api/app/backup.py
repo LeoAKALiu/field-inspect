@@ -48,6 +48,9 @@ def ledger_digest(db: Database) -> str:
         "instrument_assets",
         "instrument_records",
         "instrument_audit",
+        "processing_jobs",
+        "processing_job_items",
+        "processing_job_events",
     ):
         exists = db.query_one("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,))
         rows = db.query_all(f"SELECT * FROM {table}") if exists else []

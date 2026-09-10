@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+import asyncio
+from .processing_jobs import Worker
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -38,9 +40,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 recover_incomplete_imports(db, settings.import_root)
         except WriterLockHeld:
             pass
-        yield
-        await engine.stop()
-        db.close()
+        worker = Worker(db, settings.import_root)
+        worker.start()
+        try:
+            yield
+        finally:
+            await asyncio.to_thread(worker.stop)
+            await engine.stop()
+            db.close()
 
     app = FastAPI(
         title="Field Inspect API",

@@ -1,3 +1,4 @@
+import { ProcessingJobsPanel } from './ProcessingJobsPanel';
 import { StationEvidenceDetails } from './StationEvidenceDetails';
 import { useEffect, useState } from 'react';
 
@@ -8,24 +9,27 @@ export function RunStationPanel({ runId, origin, end, onSeek }: {
   runId: string; origin: string | undefined; end: number; onSeek: (time: number) => void;
 }) {
   const [data, setData] = useState<{ runId: string; rows: Attempt[] } | null>(null);
+  const [cursors, setCursors] = useState<string[]>(['']);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const cursor = cursors[cursors.length - 1];
   const [selectedAttempt, setSelectedAttempt] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   useEffect(() => {
-    const controller = new AbortController(); setData(null); setError('');
-    fetch(`/api/instruments/records/station_attempt?run_id=${encodeURIComponent(runId)}`, { signal: controller.signal })
-      .then(async response => { if (!response.ok) throw new Error(`站点加载失败 (${response.status})`); return response.json() as Promise<Attempt[]>; })
-      .then(rows => setData({ runId, rows }))
+    const controller = new AbortController(); setData(null); setNextCursor(null); setError('');
+    fetch(`/api/instruments/pages/station_attempt?run_id=${encodeURIComponent(runId)}&cursor=${encodeURIComponent(cursor ?? '')}&limit=25`, { signal: controller.signal })
+      .then(async response => { if (!response.ok) throw new Error(`站点加载失败 (${response.status})`); return response.json() as Promise<{ items: Attempt[]; next_cursor: string | null }>; })
+      .then(page => { if (!controller.signal.aborted) { setData({ runId, rows: page.items }); setNextCursor(page.next_cursor); } })
       .catch(e => { if (!controller.signal.aborted) setError(String(e.message)); });
     return () => controller.abort();
-  }, [runId, revision]);
+  }, [runId, revision, cursor]);
   async function reindex() {
     setBusy(true); setError('');
     try {
       const response = await fetch(`/api/instruments/runs/${encodeURIComponent(runId)}/reindex-stations`, { method: 'POST' });
       if (!response.ok) throw new Error(`重新索引失败 (${response.status})，请检查包完整性或登录状态`);
-      setRevision(value => value + 1);
+      setCursors(['']); setRevision(value => value + 1);
     } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
     finally { setBusy(false); }
   }
@@ -47,6 +51,10 @@ export function RunStationPanel({ runId, origin, end, onSeek }: {
           <button disabled={!available} onClick={() => onSeek(seconds)}>{available ? '定位回放时刻' : '超出可用轨迹时间'}</button>
         </div>;
       })}
+      <div><button disabled={cursors.length === 1 || !data} onClick={() => setCursors(value => value.slice(0,-1))}>上一页</button>
+        <span> 第 {cursors.length} 页（按记录 ID 分页，本页按时间显示） </span>
+        <button disabled={!nextCursor || !data} onClick={() => nextCursor && setCursors(value => [...value,nextCursor])}>下一页</button></div>
+      <ProcessingJobsPanel runId={runId} />
       {selectedAttempt && <><button onClick={() => setSelectedAttempt(null)}>关闭证据详情</button>
         <StationEvidenceDetails key={`${selectedAttempt}:${revision}`} runId={runId} attemptId={selectedAttempt} /></>}
     </div>
