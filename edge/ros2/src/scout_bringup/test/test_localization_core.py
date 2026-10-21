@@ -26,6 +26,7 @@ def sample(
     child_frame: str = "body",
     base_to_body: Transform3 | None = IDENTITY,
     odom_to_base: Transform3 | None = IDENTITY,
+    map_to_input: Transform3 | None = IDENTITY,
 ) -> LocalizationSample:
     """Return a valid localization sample with overridable failure inputs."""
     return LocalizationSample(
@@ -36,6 +37,7 @@ def sample(
         map_to_body=Transform3((x, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0)),
         base_to_body=base_to_body,
         odom_to_base=odom_to_base,
+        map_to_input=map_to_input,
     )
 
 
@@ -116,6 +118,11 @@ def test_composes_map_to_odom_after_three_confirmations() -> None:
             LocalizationConfig(extrinsics_verified=True),
             sample(stamp_ns=1_000_000_000, odom_to_base=None),
             "odom_transform_missing",
+        ),
+        (
+            LocalizationConfig(extrinsics_verified=True),
+            sample(stamp_ns=1_000_000_000, map_to_input=None),
+            "parent_transform_missing",
         ),
     ],
 )

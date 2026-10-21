@@ -44,6 +44,7 @@ from inspection_pipeline.trajectory_export import (
     _json_bytes,
     _load_run_contract,
     _read_odometry_samples,
+    _pose_contract,
 )
 
 SOURCE_TYPE = "nav_msgs/msg/Odometry"
@@ -760,7 +761,7 @@ def export_route_candidate(
     fast_lio_path = source / "config/fast_lio.yaml"
     if fast_lio_path.is_symlink() or not fast_lio_path.is_file():
         raise RouteTeachingError("teaching run is missing config/fast_lio.yaml")
-    pose_topic = str(localization.get("input_odom_topic", ""))
+    pose_topic, pose_parent, pose_child, pose_extrinsic = _pose_contract(localization, base_to_body)
     try:
         poses, _speeds = _read_odometry_samples(
             bag_dir,
@@ -770,14 +771,15 @@ def export_route_candidate(
             base_frame=str(localization.get("base_frame", "")),
             storage_id=storage_id,
             max_pose_samples=settings["max_source_samples"],
+            normalized="output_odom_topic" in localization,
         )
     except TrajectoryError as exc:
         raise RouteTeachingError(f"cannot read teaching odometry: {exc}") from exc
     source_samples, motion_report = _planar_samples(
         poses,
-        base_to_body=base_to_body,
-        input_global_frame=str(localization.get("input_global_frame", "")),
-        body_frame=str(localization.get("body_frame", "")),
+        base_to_body=pose_extrinsic,
+        input_global_frame=pose_parent,
+        body_frame=pose_child,
         settings=settings,
     )
     retained = _deduplicate_samples(
@@ -856,8 +858,8 @@ def export_route_candidate(
                 "bag_files": bag_files,
                 "topic": pose_topic,
                 "type": SOURCE_TYPE,
-                "parent_frame": str(localization.get("input_global_frame", "")),
-                "child_frame": str(localization.get("body_frame", "")),
+                "parent_frame": pose_parent,
+                "child_frame": pose_child,
                 "map_frame": str(localization.get("map_frame", "")),
                 "base_frame": str(localization.get("base_frame", "")),
                 "first_header_stamp_ns": source_samples[0].stamp_ns,
@@ -909,6 +911,10 @@ def export_route_candidate(
                 "archive acceptance evidence before promoting source_kind",
             ],
         }
+        if "output_odom_topic" in localization:
+            provenance.update(schema_version="1.1", pose_semantics="normalized_map_base",
+                              pose_to_base={"translation_m": list(pose_extrinsic.translation),
+                                            "rotation_xyzw": list(pose_extrinsic.rotation)})
         (temporary / PROVENANCE_FILENAME).write_bytes(_json_bytes(provenance))
         _fsync_tree(temporary)
         if target.exists():

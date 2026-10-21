@@ -17,7 +17,7 @@ from std_msgs.msg import String
 
 from inspection_pipeline.bag_health import inspect_bag
 from inspection_pipeline.bagit import BundleVerificationError, verify_bagit_bundle
-from inspection_pipeline.bundle_export import BundleExportError, export_run_bundle
+from inspection_pipeline.bundle_export import BundleExportError, export_run_bundle, _build_semantic_manifest
 from inspection_pipeline.run_validation import validate_run_directory
 from inspection_pipeline import usb_finalize as usb_finalize_module
 from inspection_pipeline.usb_finalize import UsbMount, finalize_usb
@@ -248,6 +248,37 @@ def assert_checksums_match(bundle: Path) -> None:
     for manifest_name in ("manifest-sha256.txt", "tagmanifest-sha256.txt"):
         for relative, expected in read_checksum_manifest(bundle / manifest_name).items():
             assert sha256(bundle / relative) == expected
+
+
+@pytest.mark.parametrize("wrong_topic", [False, True])
+def test_bundle_checks_normalized_provenance_against_snapshot(tmp_path, wrong_topic):
+    run_dir = create_finalized_run(tmp_path)
+    system_path = run_dir / "config/system.yaml"
+    system = yaml.safe_load(system_path.read_text())
+    system.update(scout_bringup={"extrinsics_verified": True, "base_frame": "base_link", "body_frame": "body",
+                                "base_to_body_xyz_m": [1., 0., 0.], "base_to_body_rpy_rad": [0., 0., 0.]},
+                  localization_adapter={"input_odom_topic": "/Odometry", "output_odom_topic": "/localization/odometry",
+                                        "map_frame": "map", "base_frame": "base_link", "body_frame": "body"},
+                  health_monitor={"scout_odom_topic": "/odom"})
+    system_path.write_text(yaml.safe_dump(system))
+    manifest = json.loads((run_dir / "manifest.json").read_text())
+    manifest["config_sha256"] = sha256(system_path)
+    (run_dir / "manifest.json").write_text(json.dumps(manifest))
+    provenance_path = run_dir / "replay/trajectory.provenance.json"
+    provenance = json.loads(provenance_path.read_text())
+    provenance.update(schema_version="1.1", pose_semantics="normalized_map_base",
+                      pose_topic="/Odometry" if wrong_topic else "/localization/odometry",
+                      pose_parent_frame="map", body_frame="base_link",
+                      pose_to_base={"translation_m": [0., 0., 0.], "rotation_xyzw": [0., 0., 0., 1.]},
+                      base_to_body={"translation_m": [1., 0., 0.], "rotation_xyzw": [0., 0., 0., 1.]})
+    provenance_path.write_text(json.dumps(provenance))
+    arguments = dict(run_dir=run_dir, scene_id="scene-001", alignment_id="alignment-fixture-v1", name=None)
+    if wrong_topic:
+        with pytest.raises(BundleExportError, match="normalized trajectory provenance"):
+            _build_semantic_manifest(manifest, **arguments)
+    else:
+        result = _build_semantic_manifest(manifest, **arguments)
+        assert result["run_id"] == manifest["run_id"]
 
 
 def add_verified_fixed_route(run_dir: Path) -> None:

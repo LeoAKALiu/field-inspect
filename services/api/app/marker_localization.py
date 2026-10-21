@@ -128,9 +128,46 @@ def prepare(read, inventory, manifest, source):
                 or pose["child_frame_id"] != extrinsic.get("base_frame")
                 or source["frame_id"] != extrinsic.get("camera_frame")):
             raise ValueError("image/odometry/extrinsic frames disagree")
-        if source.get("pose_method") != "latest_measured_odometry":
+        if source.get("schema_version") == "1.3":
+            if source.get("pose_method") != "latest_normalized_odometry" or source.get("localization_healthy") is not True:
+                raise ValueError("normalized capture requires healthy localization")
+            system_path = "config/system.yaml"
+            if system_path not in inventory:
+                raise ValueError("normalized capture requires recorded system config")
+            system = yaml.safe_load(read(system_path))
+            localization = system["localization_adapter"]
+            localization = localization.get("ros__parameters", localization)
+            health = system["health_monitor"]
+            health = health.get("ros__parameters", health)
+            if (pose["frame_id"] != localization.get("map_frame")
+                    or pose["child_frame_id"] != localization.get("base_frame")
+                    or source.get("pose_topic") != localization.get("output_odom_topic")
+                    or source.get("motion_topic") != health.get("scout_odom_topic")
+                    or source.get("health_topic") != localization.get("health_topic")
+                    or not all(source.get(k) for k in ("pose_topic", "motion_topic", "health_topic"))):
+                raise ValueError("normalized capture/system config disagree")
+            motion = source.get("measured_motion", {})
+            motion_stamp = motion.get("header_stamp_ns")
+            if (type(motion_stamp) is not int or motion_stamp <= 0
+                    or motion.get("frame_id") != localization.get("odom_frame")
+                    or motion.get("child_frame_id") != pose["child_frame_id"]):
+                raise ValueError("measured chassis motion frame/timestamp invalid")
+            for values in (motion.get("twist"), pose.get("twist")):
+                values = np.asarray(values, dtype=float)
+                if (values.shape != (6,) or not np.isfinite(values).all()
+                        or np.linalg.norm(values[:3]) > 0.02 or np.linalg.norm(values[3:]) > 0.02):
+                    raise ValueError("capture requires measured stop")
+            for record in (pose, motion):
+                twist_covariance = np.asarray(record.get("twist_covariance_6x6"), dtype=float).reshape(6, 6)
+                if (not np.isfinite(twist_covariance).all()
+                        or not np.allclose(twist_covariance, twist_covariance.T, rtol=0, atol=1e-9)
+                        or np.linalg.eigvalsh(twist_covariance).min() < -1e-10):
+                    raise ValueError("normalized/measured twist covariance invalid")
+        elif source.get("pose_method") != "latest_measured_odometry":
             raise ValueError("unsupported capture pose method")
         stamps = [source.get(field) for field in ("image_header_stamp_ns", "pose_header_stamp_ns")]
+        if source.get("schema_version") == "1.3":
+            stamps.append(motion_stamp)
         if any(type(v) is not int or v <= 0 for v in stamps):
             raise ValueError("missing image or odometry timestamp")
         for stamp in stamps:
@@ -143,14 +180,21 @@ def prepare(read, inventory, manifest, source):
         gap = abs(stamps[0]-stamps[1]) / 1e9
         if gap > positive(policy.get("max_pose_gap_seconds"), "max_pose_gap_seconds"):
             raise ValueError("image/odometry synchronization gap exceeds policy")
+        if source.get("schema_version") == "1.3" and abs(stamps[0]-stamps[2]) > 500_000_000:
+            raise ValueError("measured chassis motion is stale at capture")
         # ROS pose covariance ordering is translation xyz then fixed-axis rotation xyz, in parent frame.
         covariance = np.asarray(pose.get("covariance_6x6"), dtype=float)
         if covariance.size != 36:
             raise ValueError("full odometry covariance_6x6 missing")
         covariance = covariance.reshape(6,6)
-        if (not np.isfinite(covariance).all() or not np.allclose(covariance,covariance.T,atol=1e-9)
+        if (not np.isfinite(covariance).all() or not np.allclose(covariance,covariance.T,rtol=0,atol=1e-9)
                 or np.linalg.eigvalsh(covariance).min() < -1e-10 or np.trace(covariance) <= 0):
             raise ValueError("odometry covariance must be nonzero, symmetric and positive semidefinite")
+        if source.get("schema_version") == "1.3":
+            variance = np.asarray(pose.get("position_variance_m2"), dtype=float)
+            if (variance.shape != (3,) or not np.allclose(variance, covariance.diagonal()[:3], rtol=0, atol=1e-9)
+                    or np.any(covariance.diagonal()[:3] < 0) or np.any(covariance.diagonal()[:3] > 0.04)):
+                raise ValueError("normalized pose variance inconsistent or unstable")
         map_from_base = pose_matrix([pose["position"][k] for k in ("x","y","z")], pose["orientation_xyzw"])
         transform = alignment["transform"]
         scene_from_map = pose_matrix(transform["translation_m"], transform["rotation_xyzw"])

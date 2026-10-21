@@ -12,7 +12,7 @@
 - config/scene_alignment.yaml：沿用现有经测量审批的对齐格式。
 - config/camera_calibration.json：verified、width、height、3x3 camera_matrix、distortion_coefficients。参数必须来自真实相机标定。
 - alignment/camera_to_scene.json：verified、transform_id、alignment_id、scene_alignment_sha256、base_frame、camera_frame、base_from_camera（4x4 刚体矩阵，把光学相机坐标变到里程计 child_frame）。scene_alignment_sha256 绑定上面的 YAML；每帧通过实录位姿插值得到 camera→scene，不使用一个静态相机位姿代替移动车辆。
-- config/acceptance-export.json：image_topic、pose_topic、dictionary、detector_parameters 对象、max_pose_gap_seconds。显式填写 ROS topic 和 ArUco 字典，不能用 AprilTag 代理配置替代。
+- config/acceptance-export.json：image_topic、pose_topic、dictionary、detector_parameters 对象、max_pose_gap_seconds。显式填写 ROS topic 和 ArUco 字典，不能用 AprilTag 代理配置替代。新配置声明 output_odom_topic 时，pose_topic 必须指向该统一里程计（默认 /localization/odometry，map/base_link）；轨迹来源记录使用 1.1 并核对实际应用的单位 pose_to_base，base_to_body 仍保存真实配置外参。见 [坐标一致性](COORDINATE_CONSISTENCY.md)。
 
 在 ROS 目标机运行 `ros2 run inspection_pipeline inspection_acceptance_export RUN_DIR`。逐帧处理整个录包，保留所有有效登记地标检测，首个有效检测只用于代表图。位姿没有时间覆盖、帧身份不符或标定缺失即停止，输出只在完成后原子出现。记录未知标记和 PnP 失败计数。已存在输出不覆盖；纠正来源时使用新的私有运行副本。
 

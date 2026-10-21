@@ -20,6 +20,8 @@ config/instrument-localization.json 的严格模型是 services/api/app/marker_l
 
 source.json 1.2 新增 pose.covariance_6x6，保留 ROS 36 个协方差元素，顺序为父坐标系下 xyz 与固定轴旋转 xyz。必须有限、对称、半正定且非全零。1.1 旧包缺少完整协方差时阻止定位，不将三项位置方差扩充为虚构的六自由度协方差。图像/位姿时间须在运行内，时间差须与记录一致且不超限。
 
+新采集使用 source.json 1.3，明确标识 latest_normalized_odometry，使用 map/base_link 位姿，保存独立底盘停车证据及健康声明。服务端额外核对运行配置、来源话题、完整协方差、参考点和时间；旧来源保持原有解释，不补造证据。转换假设与验证缺口见 [坐标一致性](COORDINATE_CONSISTENCY.md)。
+
 ## 求解与拒绝规则
 
 遵循 [OpenCV solvePnPGeneric / IPPE_SQUARE 契约](https://docs.opencv.org/4.5.1/d9/d0c/group__calib3d.html)：按标记左上、右上、右下、左下角顺序建立边长为米的正方形对象点，保留返回的姿态解并独立计算角点像素重投影 RMSE。拒绝负深度、无有限解、RMSE 超限、前两个候选误差差值不大于 ambiguity_margin_px，以及退化雅可比。

@@ -76,6 +76,7 @@ def write_odometry(
     message.pose.pose.position.y = position[1]
     message.pose.pose.position.z = position[2]
     message.pose.pose.orientation.w = 1.0
+    message.pose.covariance = [0.001 if i % 7 == 0 else 0. for i in range(36)]
     message.twist.twist.linear.x = speed_mps
     writer.write(topic, serialize_message(message), stamp_ns)
 
@@ -85,6 +86,7 @@ def create_finalized_run(
     *,
     extrinsics_verified: bool = True,
     storage_id: str = "sqlite3",
+    normalized: bool = False,
 ) -> Path:
     """Create a minimal finalized run containing real rosbag2 records."""
     run_id = "run-trajectory-001"
@@ -120,6 +122,9 @@ def create_finalized_run(
             }
         },
     }
+    if normalized:
+        system["localization_adapter"]["ros__parameters"]["output_odom_topic"] = "/localization/odometry"
+    pose_topic = "/localization/odometry" if normalized else "/Odometry"
     system_path = config_dir / "system.yaml"
     system_path.write_text(yaml.safe_dump(system, sort_keys=False), encoding="utf-8")
     operational = {
@@ -144,7 +149,7 @@ def create_finalized_run(
         rosbag2_py.StorageOptions(uri=str(bag_dir), storage_id=storage_id),
         rosbag2_py.ConverterOptions("", ""),
     )
-    for topic in ("/Odometry", "/odom"):
+    for topic in (pose_topic, "/odom"):
         writer.create_topic(
             rosbag2_py.TopicMetadata(
                 name=topic,
@@ -155,10 +160,10 @@ def create_finalized_run(
     first = 1_787_472_000_000_000_000
     write_odometry(
         writer,
-        "/Odometry",
+        pose_topic,
         first,
-        frame_id="camera_init",
-        child_frame_id="body",
+        frame_id="map" if normalized else "camera_init",
+        child_frame_id="base_link" if normalized else "body",
         position=(2.0, 3.0, 4.0),
     )
     write_odometry(
@@ -171,10 +176,10 @@ def create_finalized_run(
     )
     write_odometry(
         writer,
-        "/Odometry",
+        pose_topic,
         first + 1_000_000_000,
-        frame_id="camera_init",
-        child_frame_id="body",
+        frame_id="map" if normalized else "camera_init",
+        child_frame_id="base_link" if normalized else "body",
         position=(3.0, 3.0, 4.0),
     )
     del writer
@@ -186,6 +191,35 @@ def write_alignment(tmp_path: Path, document: dict) -> Path:
     path = tmp_path / "alignment.yaml"
     path.write_text(yaml.safe_dump(document, sort_keys=False), encoding="utf-8")
     return path
+
+
+def test_normalized_recording_is_not_transformed_twice(tmp_path):
+    run_dir = create_finalized_run(tmp_path, normalized=True)
+    output = export_trajectory(run_dir, write_alignment(tmp_path, alignment_document()),
+                               allow_synthetic_alignment=True, allow_non_mcap_bag=True)
+    trajectory = json.loads(output.read_text())
+    assert trajectory["points"][0]["position"] == pytest.approx(dict(x=12., y=24., z=27.))
+    provenance = json.loads((run_dir / "replay/trajectory.provenance.json").read_text())
+    assert provenance["pose_topic"] == "/localization/odometry"
+    assert provenance["pose_parent_frame"] == "map" and provenance["body_frame"] == "base_link"
+    assert provenance["schema_version"] == "1.1"
+    assert provenance["base_to_body"]["translation_m"] == [1., 0., 0.]
+    assert provenance["pose_to_base"]["translation_m"] == [0., 0., 0.]
+
+
+def test_normalized_snapshot_never_falls_back_to_raw_topic(tmp_path):
+    run_dir = create_finalized_run(tmp_path)
+    system_path = run_dir / "config/system.yaml"
+    system = yaml.safe_load(system_path.read_text())
+    system["localization_adapter"]["ros__parameters"]["output_odom_topic"] = "/localization/odometry"
+    system_path.write_text(yaml.safe_dump(system))
+    manifest_path = run_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["config_sha256"] = sha256(system_path)
+    manifest_path.write_text(json.dumps(manifest))
+    with pytest.raises(TrajectoryError, match="must exist"):
+        export_trajectory(run_dir, write_alignment(tmp_path, alignment_document()),
+                          allow_synthetic_alignment=True, allow_non_mcap_bag=True)
 
 
 def test_exports_trajectory_and_provenance_from_real_rosbag(tmp_path: Path) -> None:
