@@ -59,7 +59,8 @@ def _process(db, evidence, ledger, archive, sequence):
     required = [folder + "/frame.png", folder + "/source.json", "config/camera_calibration.json", "config/instrument-detector.json"]
     gaps = ["missing:" + path for path in required if path not in inventory]
     report = {"report_id": report_id, "run_id": manifest.run_id, "attempt_id": evidence["attempt_id"],
-        "capture_attempt_seq": sequence, "producer_version": VERSION, "input_sha256": inputs,
+        "capture_attempt_seq": sequence, "producer_version": VERSION,
+        "input_sha256": {**inputs, **{path: inventory[path] for path in required if path in inventory}},
         "status": "blocked", "gaps": gaps, "observations": [], "detections": [],
         "notice": "Marker proxy only. Confidence is conservatively zero; no calibrated detection probability or 3D confirmation is claimed."}
     objects = []
@@ -99,8 +100,12 @@ def _process(db, evidence, ledger, archive, sequence):
             if raw_image[:8] != b"\x89PNG\r\n\x1a\n" or len(raw_image) < 24:
                 raise ValueError("capture must be a PNG")
             width = int.from_bytes(raw_image[16:20], "big"); height = int.from_bytes(raw_image[20:24], "big")
-            if not 0 < width*height <= 20_000_000 or camera.get("image_width") != width or camera.get("image_height") != height:
+            if not 0 < width*height <= 20_000_000:
                 raise ValueError("capture dimensions must match calibration and size limit")
+            for field, legacy, actual in (("width", "image_width", width), ("height", "image_height", height)):
+                values = [camera[key] for key in (field, legacy) if key in camera]
+                if not values or any(type(value) is not int or value != actual for value in values):
+                    raise ValueError("capture dimensions must match calibration without conflicting aliases")
             frame = cv2.imdecode(np.frombuffer(raw_image, np.uint8), cv2.IMREAD_GRAYSCALE)
             if frame is None or frame.shape != (height, width):
                 raise ValueError("capture image could not be decoded")

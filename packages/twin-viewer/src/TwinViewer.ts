@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type {
   CameraCommand,
   DetectionEvent,
+  InstrumentLocalization,
   SceneMetadata,
   SensorDevice,
   TwinCameraState,
@@ -23,6 +24,7 @@ import { loadPlyPointCloud } from './loaders/pointCloudLoader.js';
 import { VehicleLayer } from './scene/VehicleLayer.js';
 import { DeviceLayer } from './scene/DeviceLayer.js';
 import { EventLayer } from './scene/EventLayer.js';
+import { LocalizationLayer } from './scene/LocalizationLayer.js';
 import { sceneBoundsFromMetadata } from './scene/bounds.js';
 import { CameraController } from './camera/CameraController.js';
 import { Picker, toObjectSelectEvent, type EnginePickHit } from './interaction/Picker.js';
@@ -47,6 +49,7 @@ export class TwinViewer implements TwinViewerPublicAPI {
   private readonly meshUrl: string | null;
   private readonly pointCloudUrl: string | null;
   private readonly transformMatrix: readonly number[];
+  private readonly pointCloudTransformMatrix: readonly number[];
   private readonly options: Required<
     Pick<
       TwinViewerOptions,
@@ -71,6 +74,7 @@ export class TwinViewer implements TwinViewerPublicAPI {
   private readonly vehicleLayer: VehicleLayer;
   private readonly deviceLayer: DeviceLayer;
   private readonly eventLayer: EventLayer;
+  private readonly localizationLayer: LocalizationLayer;
   private cameraController: CameraController | null = null;
   private picker: Picker | null = null;
 
@@ -112,6 +116,7 @@ export class TwinViewer implements TwinViewerPublicAPI {
       opt.transformMatrix && opt.transformMatrix.length === 16
         ? opt.transformMatrix
         : IDENTITY_MATRIX_4;
+    this.pointCloudTransformMatrix = opt.pointCloudTransformMatrix ?? this.transformMatrix;
     this.options = {
       background: parseColor(opt.background ?? 0x12151a),
       maxPixelRatio: opt.maxPixelRatio ?? 2,
@@ -171,9 +176,11 @@ export class TwinViewer implements TwinViewerPublicAPI {
     );
     this.deviceLayer = new DeviceLayer();
     this.eventLayer = new EventLayer();
+    this.localizationLayer = new LocalizationLayer();
     this.entityGroup.add(this.vehicleLayer.group);
     this.entityGroup.add(this.deviceLayer.group);
     this.entityGroup.add(this.eventLayer.group);
+    this.entityGroup.add(this.localizationLayer.group);
 
     this.cameraController = new CameraController(
       this.camera,
@@ -266,6 +273,7 @@ export class TwinViewer implements TwinViewerPublicAPI {
           });
           this.clearGroup(this.meshGroup);
           this.meshGroup.add(mesh);
+          if (this.disposed) { this.clearGroup(this.meshGroup); return; }
           this.meshObject = mesh;
           this.meshLoaded = true;
           this.emitProgress('mesh', 0.45);
@@ -279,7 +287,7 @@ export class TwinViewer implements TwinViewerPublicAPI {
         } else {
           this.emitProgress('pointcloud', 0.45);
           const pts = await loadPlyPointCloud(this.pointCloudUrl, {
-            transformMatrix: this.transformMatrix,
+            transformMatrix: this.pointCloudTransformMatrix,
             pointSize: autoPointSize,
             vertexColors: this.options.pointVertexColors,
             fallbackColor: this.options.pointColor,
@@ -288,6 +296,7 @@ export class TwinViewer implements TwinViewerPublicAPI {
           });
           this.clearGroup(this.pointsGroup);
           this.pointsGroup.add(pts);
+          if (this.disposed) { this.clearGroup(this.pointsGroup); return; }
           this.pointsObject = pts;
           this.pointsLoaded = true;
           this.picker?.setPointThreshold(Math.max(0.25, autoPointSize * 3));
@@ -346,6 +355,12 @@ export class TwinViewer implements TwinViewerPublicAPI {
     this.eventLayer.setSelectedId(this.selectedObjectId);
   }
 
+  setInstrumentLocalizations(records: InstrumentLocalization[]): void {
+    this.assertAlive();
+    this.localizationLayer.setLocalizations(records);
+    this.localizationLayer.setSelectedId(this.selectedObjectId);
+  }
+
   setPlaybackTime(time: number): void {
     this.assertAlive();
     this.playbackTime = time;
@@ -361,6 +376,7 @@ export class TwinViewer implements TwinViewerPublicAPI {
     this.selectedObjectId = id;
     this.deviceLayer.setSelectedId(id);
     this.eventLayer.setSelectedId(id);
+    this.localizationLayer.setSelectedId(id);
   }
 
   executeCameraCommand(command: CameraCommand): void {
@@ -414,6 +430,7 @@ export class TwinViewer implements TwinViewerPublicAPI {
     this.vehicleLayer.dispose();
     this.deviceLayer.dispose();
     this.eventLayer.dispose();
+    this.localizationLayer.dispose();
     this.clearGroup(this.meshGroup);
     this.clearGroup(this.pointsGroup);
     this.renderer.dispose();
@@ -437,7 +454,7 @@ export class TwinViewer implements TwinViewerPublicAPI {
     if (id === 'inspection-vehicle' || id === 'vehicle') {
       return this.vehicleLayer.getVehicleObject();
     }
-    return this.deviceLayer.getObject(id) ?? this.eventLayer.getObject(id) ?? null;
+    return this.localizationLayer.getObject(id) ?? this.deviceLayer.getObject(id) ?? this.eventLayer.getObject(id) ?? null;
   }
 
   private handlePick(result: EnginePickHit): void {

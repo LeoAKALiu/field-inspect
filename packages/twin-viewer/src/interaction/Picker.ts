@@ -118,7 +118,7 @@ export class Picker {
 
 export function toObjectSelectEvent(hit: EnginePickHit): TwinObjectSelectEvent | null {
   if (!hit.id) return null;
-  if (hit.kind !== 'device' && hit.kind !== 'event' && hit.kind !== 'vehicle') return null;
+  if (hit.kind !== 'device' && hit.kind !== 'event' && hit.kind !== 'vehicle' && hit.kind !== 'localization') return null;
   return {
     id: hit.id,
     kind: hit.kind,

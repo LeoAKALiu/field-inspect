@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi.responses import Response
 
 from .. import instruments as service
 from ..db import Database
@@ -115,6 +116,21 @@ def process_capture(attempt_id: str, sequence: int, db: Database = Depends(get_d
         raise HTTPException(422, str(exc)) from exc
 
 
+@router.get("/stations/{attempt_id}/captures/{sequence}/image", response_class=Response,
+            responses={200: {"content": {"image/png": {}}}})
+def capture_image(attempt_id: str, sequence: int, db: Database = Depends(get_db)):
+    from ..station_import import capture_image as read_image
+    from ..writer_lock import WriterLockHeld
+    try:
+        raw = read_image(db, attempt_id, sequence)
+    except WriterLockHeld as exc:
+        raise HTTPException(409, "Import writer is busy") from exc
+    except (ValueError, KeyError, TypeError, OSError) as exc:
+        raise HTTPException(422, "Station image is unavailable or failed integrity checks") from exc
+    return Response(raw, media_type="image/png", headers={"Cache-Control": "private, no-store",
+                                                         "X-Content-Type-Options": "nosniff"})
+
+
 RecordKind = Literal["observation", "localization", "asset_match", "station_attempt", "reading", "match_review", "station_evidence", "processing_report"]
 
 
@@ -142,6 +158,16 @@ def get_record(kind: RecordKind, identity: str, db: Database = Depends(get_db)):
 def create_job(run_id: str, db: Database = Depends(get_db)):
     from ..processing_jobs import create
     return call(create, db, run_id)
+
+
+@router.get("/runs/{run_id}/marker-localizations")
+def marker_localizations(run_id: str, cursor: str = Query(default="", max_length=512),
+                         limit: int = Query(default=25, ge=1, le=100), db: Database = Depends(get_db)):
+    from ..localization_view import page
+    try:
+        return page(db, run_id, cursor, limit)
+    except (ValueError, KeyError, TypeError, IndexError) as exc:
+        raise HTTPException(422, "Marker localization records failed run, report or capture binding checks") from exc
 
 
 @router.get("/jobs")

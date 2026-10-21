@@ -7,7 +7,7 @@ POST `/api/instruments/stations/{attempt_id}/captures/{sequence}/process` 只读
 归档 inventory 中必须包含：
 
 - 同一采集目录的 frame.png 与 source.json；图片不超过 32 MiB、2000 万像素。
-- config/camera_calibration.json：verified 为 true，camera_matrix 为 3×3 或九元素数组，distortion_coefficients 为 4/5/8/12/14 元素数组，image_width/image_height 与实际图片一致，frame_id 与采集帧一致。verified 声明不能替代现场标定与验收。
+- config/camera_calibration.json：verified 为 true，camera_matrix 为 3×3 或九元素数组，distortion_coefficients 为 4/5/8/12/14 元素数组，width/height 与实际图片一致；兼容已有 image_width/image_height，若两组同时存在必须完全一致且为整数。frame_id 与采集帧一致。读取不改写原标定文件或摘要；verified 声明不能替代现场标定与验收。
 - config/instrument-detector.json：schema_version 为 "1.0"，dictionary 为明确的 OpenCV ArUco 字典名称，marker_ids 是非空、唯一的仪器代理标记 ID 列表。必须来自实际布设，不得复用该场景的验收地标。
 
 配置冻结在运行快照中，经车端导出纳入 inventory。不要修改已归档包来补输入：保留原包、修正采集配置并导出新的运行。相同包、站点、采集序号与处理器版本的结果幂等；升级处理算法或 OpenCV 版本时必须提升 VERSION。

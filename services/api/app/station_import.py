@@ -3,10 +3,10 @@ from datetime import datetime, timezone, timedelta
 import hashlib
 import json
 import uuid
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 
 from .domain_contract import StationAttempt
-from .instruments import instant, save
+from .instruments import instant, record, save
 
 ARTIFACT = "artifacts/stations/attempts.json"
 
@@ -15,6 +15,8 @@ def prepare(manifest, archive):
     # Legacy packages have no formal inventory and remain explicitly unindexed.
     inventory = {item.path: item.sha256 for item in getattr(manifest, "payload_inventory", [])}
     if ARTIFACT not in inventory:
+        if any(path.startswith("artifacts/station-captures/") for path in inventory):
+            raise ValueError("station captures require a station attempt index")
         return []
     root = archive / "data"
 
@@ -85,7 +87,7 @@ def prepare(manifest, archive):
         if inventory.get(source["path"]) != source["sha256"]:
             raise ValueError("station source digest is not in package inventory")
     start, end = instant(str(manifest.started_at)), instant(str(manifest.ended_at))
-    rows, identities, sequences = [], set(), set()
+    rows, identities, sequences, attempt_keys = [], set(), set(), set()
     attempts = document["attempts"]
     if not isinstance(attempts, list) or len(attempts) > 10000:
         raise ValueError("invalid station attempt list")
@@ -126,6 +128,7 @@ def prepare(manifest, archive):
         if model["attempt_id"] in identities or key in sequences:
             raise ValueError("duplicate station attempt identity/sequence")
         identities.add(model["attempt_id"]); sequences.add(key)
+        attempt_keys.add((manifest.run_id, raw["execution_id"], raw["station_id"]))
         rows.append(("station_attempt", model["attempt_id"], model))
         rows.append(("station_evidence", model["attempt_id"], {
             "attempt_id": model["attempt_id"], "run_id": manifest.run_id,
@@ -135,12 +138,58 @@ def prepare(manifest, archive):
             "artifact_sha256": inventory[ARTIFACT],
             "verification": "package_hashes_and_structure; MCAP outcome not independently recomputed on server",
         }))
+    if captures.keys() - attempt_keys:
+        raise ValueError("station capture has no matching run/execution/station attempt")
     return rows
 
 
 def materialize(db, conn, run_id, rows):
     for kind, identity, payload in rows:
         save(db, kind, identity, run_id, payload, "package_import", conn=conn)
+
+
+def capture_image(db, attempt_id, sequence):
+    """Read only the PNG bound to an imported, successful station capture."""
+    from . import run_bundle as bundle
+    from .writer_lock import ImportWriterLock
+
+    if sequence < 1:
+        raise ValueError("capture sequence must be positive")
+    evidence = record(db, "station_evidence", attempt_id)
+    captures = [c for c in evidence["captures"]
+                if c["capture_attempt_seq"] == sequence and c["state"] == "captured"]
+    if len(captures) != 1:
+        raise ValueError("exactly one successful capture is required")
+    capture = captures[0]
+    row = db.query_one("SELECT * FROM run_bundle_imports WHERE run_id=?", (evidence["run_id"],))
+    if row is None:
+        raise ValueError("unknown archived run")
+    path = capture["artifact_path"]
+    parts = PurePosixPath(path)
+    if (parts.is_absolute() or ".." in parts.parts or "\\" in path or ":" in path
+            or not path.startswith("artifacts/station-captures/") or parts.name != "captured.json"):
+        raise ValueError("invalid station capture path")
+    image_path = str(parts.parent / "frame.png")
+    inventory = {entry["path"]: entry["sha256"]
+                 for entry in json.loads(row["manifest_json"]).get("payload_inventory", [])}
+    if (inventory.get(path) != capture["artifact_sha256"] or not capture.get("image_sha256")
+            or inventory.get(image_path) != capture["image_sha256"]):
+        raise ValueError("capture does not match the import ledger")
+    archive = Path(row["archive_path"])
+    with ImportWriterLock(archive.parent.parent):
+        bundle._assert_plain_tree(archive)
+        metadata_path = archive / "data" / path
+        with metadata_path.open("rb") as stream:
+            metadata = stream.read(16 * 1024 * 1024 + 1)
+        if len(metadata) > 16 * 1024 * 1024 or hashlib.sha256(metadata).hexdigest() != capture["artifact_sha256"]:
+            raise ValueError("station capture digest mismatch")
+        with (archive / "data" / image_path).open("rb") as stream:
+            raw = stream.read(32 * 1024 * 1024 + 1)
+        if len(raw) > 32 * 1024 * 1024 or hashlib.sha256(raw).hexdigest() != capture["image_sha256"]:
+            raise ValueError("station image digest mismatch")
+        if not raw.startswith(b"\x89PNG\r\n\x1a\n"):
+            raise ValueError("station evidence must be a PNG")
+        return raw
 
 
 def reindex(db, run_id):

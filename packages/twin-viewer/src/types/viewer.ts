@@ -15,6 +15,7 @@ export type {
   VehicleState,
   TrajectoryPoint,
   DetectionEvent,
+  InstrumentLocalization,
   EventType,
   EventSeverity,
   EventStatus,
@@ -40,6 +41,7 @@ export type {
 import type {
   CameraCommand,
   DetectionEvent,
+  InstrumentLocalization,
   SensorDevice,
   TwinCameraState,
   TwinCoordinatePickEvent,
@@ -72,6 +74,8 @@ export interface TwinViewerOptions {
    * Default identity. LIRIS demo supplies the packaging matrix from assets.
    */
   transformMatrix?: number[];
+  /** Separate point-cloud transform when a raw mesh and scene-aligned cloud are mixed. */
+  pointCloudTransformMatrix?: readonly number[];
   /** Optional camera FOV degrees (default 50). */
   fov?: number;
 }
@@ -84,6 +88,7 @@ export interface TwinViewerPublicAPI {
   setTrajectory(points: TwinTrajectoryPoint[]): void;
   setSensorDevices(devices: SensorDevice[]): void;
   setDetectionEvents(events: DetectionEvent[]): void;
+  setInstrumentLocalizations(records: InstrumentLocalization[]): void;
   setPlaybackTime(time: number): void;
   getPlaybackTime(): number;
   setSelectedObjectId(id: string | null): void;

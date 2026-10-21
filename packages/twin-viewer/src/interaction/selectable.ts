@@ -5,7 +5,7 @@ export const USER_DATA_KEY = 'twinSelectable' as const;
 
 export type SelectableKind = Extract<
   TwinSelectableKind,
-  'vehicle' | 'device' | 'event'
+  'vehicle' | 'device' | 'event' | 'localization'
 >;
 
 export interface SelectableUserData {

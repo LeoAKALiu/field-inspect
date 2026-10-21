@@ -2,12 +2,13 @@
 
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import Response
 
 from ..acceptance import acceptance_summary_for
 from ..db import Database, point_to_dict, task_to_dict
 from ..display_trajectory import build_display_trajectory
-from ..errors import not_found
+from ..errors import not_found, raise_error
 from . import get_db
 
 router = APIRouter()
@@ -64,6 +65,29 @@ def get_task(task_id: str, db: Database = Depends(get_db)) -> dict:
     if row is None:
         not_found("任务", task_id)
     return _public_task(row, db)
+
+
+@router.get("/tasks/{task_id}/pointcloud.ply", response_class=Response,
+            responses={200: {"content": {"application/octet-stream": {}}}})
+def get_task_pointcloud(task_id: str, db: Database = Depends(get_db)):
+    from ..run_pointcloud import PointCloudPreviewError, preview
+    from ..writer_lock import WriterLockHeld
+
+    try:
+        raw, headers = preview(db, task_id)
+    except WriterLockHeld as exc:
+        raise HTTPException(409, "Import writer is busy; retry point-cloud loading") from exc
+    except ImportError as exc:
+        raise HTTPException(503, "Install the locked server point-cloud preview dependencies") from exc
+    except PointCloudPreviewError as exc:
+        raise_error(422, exc.code, str(exc))
+    except FileNotFoundError:
+        raise_error(422, "pointcloud_file_missing", "An archived point-cloud source file is missing")
+    except OSError:
+        raise_error(422, "pointcloud_file_unavailable", "An archived point-cloud source file cannot be read")
+    except (ValueError, KeyError, TypeError, IndexError, OverflowError):
+        raise_error(422, "pointcloud_invalid_format", "Point-cloud data or metadata is incomplete or unsupported")
+    return Response(raw, media_type="application/octet-stream", headers=headers)
 
 
 @router.get("/tasks/{task_id}/trajectory")

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { DataSourceStatus, DetectionEvent, SceneMetadata, SensorDevice, SensorReading } from '@digital-twin/contracts';
+import type { DataSourceStatus, DetectionEvent, PatrolTask, SceneMetadata, SensorDevice, SensorReading } from '@digital-twin/contracts';
 import { api } from './client';
 
 interface AsyncState<T> {
@@ -35,6 +35,11 @@ function useAsync<T>(fetcher: () => Promise<T>, deps: unknown[]): AsyncState<T> 
 /** GET /api/data-sources — simulation/replay/live_pending availability. */
 export function useDataSources(): AsyncState<DataSourceStatus[]> {
   return useAsync(() => api.listDataSources(), []);
+}
+
+/** Replay selection includes imported runs from every registered scene. */
+export function useTasks(): AsyncState<PatrolTask[]> {
+  return useAsync(() => api.listTasks(), []);
 }
 
 /** GET /api/scenes/{id}/metadata — 场景元数据（资产 URL、巡检路线、坐标系声明）。 */
