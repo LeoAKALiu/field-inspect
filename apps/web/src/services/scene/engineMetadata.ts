@@ -48,7 +48,7 @@ export function loadEngineSceneMetadata(): Promise<PackagedEngineSceneMetadata> 
   return cache;
 }
 
-export function useEngineSceneMetadata(): {
+export function useEngineSceneMetadata(enabled = true): {
   data: PackagedEngineSceneMetadata | null;
   loading: boolean;
   error: string | null;
@@ -60,6 +60,7 @@ export function useEngineSceneMetadata(): {
   }>({ data: null, loading: true, error: null });
 
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
     loadEngineSceneMetadata()
       .then((data) => {
@@ -77,7 +78,7 @@ export function useEngineSceneMetadata(): {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [enabled]);
 
   return state;
 }

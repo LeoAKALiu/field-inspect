@@ -66,8 +66,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   listScenes: () => request<Scene[]>('/scenes'),
   getScene: (sceneId: string) => request<SceneDetail>(`/scenes/${sceneId}`),
-  getSceneMetadata: (sceneId: string, params: { scene_version_id?: string } = {}) =>
-    request<SceneMetadata>(`/scenes/${sceneId}/metadata${qs(params)}`),
+  getSceneMetadata: (sceneId: string, params: { scene_version_id?: string } = {}, signal?: AbortSignal) =>
+    request<SceneMetadata>(`/scenes/${sceneId}/metadata${qs(params)}`, { signal }),
   getSceneVersion: (sceneVersionId: string) =>
     request<SceneVersion>(`/scene-versions/${sceneVersionId}`),
 
@@ -75,15 +75,17 @@ export const api = {
     params: { scene_id?: string; status?: TaskStatus; mode?: TaskMode; run_kind?: RunKind } = {},
   ) => request<PatrolTask[]>(`/tasks${qs(params)}`),
   getTask: (taskId: string) => request<PatrolTask>(`/tasks/${taskId}`),
-  getTaskTrajectory: (taskId: string, params: { from_seq?: number; limit?: number } = {}) =>
-    request<TrajectoryPoint[]>(`/tasks/${taskId}/trajectory${qs(params)}`),
+  getTaskTrajectory: (taskId: string, params: { from_seq?: number; limit?: number } = {}, signal?: AbortSignal) =>
+    request<TrajectoryPoint[]>(`/tasks/${taskId}/trajectory${qs(params)}`, { signal }),
   /** Page through Replay Trajectory until the authoritative series is complete. */
-  getTaskReplayTrajectory: async (taskId: string): Promise<TrajectoryPoint[]> => {
+  getTaskReplayTrajectory: async (taskId: string, signal?: AbortSignal): Promise<TrajectoryPoint[]> => {
     const pageSize = 10_000;
     const points: TrajectoryPoint[] = [];
     let fromSeq = 0;
     for (;;) {
-      const page = await api.getTaskTrajectory(taskId, { from_seq: fromSeq, limit: pageSize });
+      signal?.throwIfAborted();
+      const page = await api.getTaskTrajectory(taskId, { from_seq: fromSeq, limit: pageSize }, signal);
+      signal?.throwIfAborted();
       points.push(...page);
       if (page.length < pageSize) {
         return points;
@@ -91,8 +93,8 @@ export const api = {
       fromSeq = page[page.length - 1]!.seq + 1;
     }
   },
-  getTaskDisplayTrajectory: (taskId: string) =>
-    request<DisplayTrajectory>(`/tasks/${taskId}/display-trajectory`),
+  getTaskDisplayTrajectory: (taskId: string, signal?: AbortSignal) =>
+    request<DisplayTrajectory>(`/tasks/${taskId}/display-trajectory`, { signal }),
 
   listEvents: (
     params: {

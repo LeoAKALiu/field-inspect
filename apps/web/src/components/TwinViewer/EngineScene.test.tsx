@@ -20,6 +20,8 @@ vi.mock('@digital-twin/twin-viewer/react', () => ({
 }));
 
 vi.mock('../../services/scene/engineMetadata', () => ({
+  LIRIS_MESH_URL: '/tunnel/liris/tunnel_mesh.obj',
+  LIRIS_POINTCLOUD_URL: '/tunnel/liris/tunnel_pointcloud.ply',
   useEngineSceneMetadata: () => ({
     data: {
       scene_id: 'scene-001',
@@ -69,6 +71,35 @@ describe('EngineScene asset coordinates', () => {
     expect(viewerProbe.props).not.toBeNull();
     expect(viewerProbe.props?.options).toEqual({
       transformMatrix: viewerProbe.transformMatrix,
+      pointCloudTransformMatrix: viewerProbe.transformMatrix,
     });
+  });
+
+  it('keeps an imported cloud in scene coordinates alongside a raw LIRIS mesh', () => {
+    const sceneMetadata = { ...props.sceneMetadata, scene_version_id: 'measured-v1' };
+    const html = renderToStaticMarkup(<EngineScene {...props}
+      sceneMetadata={sceneMetadata} pointCloudUrl="blob:recorded-run" />);
+
+    expect(viewerProbe.props?.sceneMetadata).toBe(sceneMetadata);
+    expect(viewerProbe.props?.options).toEqual({
+      transformMatrix: viewerProbe.transformMatrix,
+      pointCloudTransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+    });
+    expect(html).toContain('measured-v1');
+    expect(html).not.toContain('模拟车辆');
+  });
+
+  it('passes an independent scene through without the LIRIS packaging transform', () => {
+    renderToStaticMarkup(<EngineScene {...props} meshUrl={null} pointCloudUrl="blob:recorded-run" />);
+    expect(viewerProbe.props?.sceneMetadata).toBe(props.sceneMetadata);
+    expect(viewerProbe.props?.options).toMatchObject({ transformMatrix: undefined });
+  });
+
+  it('forwards observation positions separately from registered devices', () => {
+    const localizations: NonNullable<TwinViewerProps['instrumentLocalizations']> = [];
+    const html = renderToStaticMarkup(<EngineScene {...props} instrumentLocalizations={localizations} />);
+    expect(viewerProbe.props?.instrumentLocalizations).toBe(localizations);
+    expect(viewerProbe.props?.sensorDevices).toBe(props.sensorDevices);
+    expect(html).toContain('观测定位');
   });
 });

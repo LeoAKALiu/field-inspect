@@ -13,6 +13,7 @@ import type {
 import type {
   CameraCommand,
   DetectionEvent,
+  InstrumentLocalization,
   SensorDevice,
   TwinCameraState,
   TwinCoordinatePickEvent,
@@ -81,6 +82,7 @@ export const TwinViewerView = forwardRef<TwinViewerPublicAPI, TwinViewerViewProp
       if (props.trajectory?.length) viewer.setTrajectory(props.trajectory);
       if (props.sensorDevices?.length) viewer.setSensorDevices(props.sensorDevices);
       if (props.detectionEvents?.length) viewer.setDetectionEvents(props.detectionEvents);
+      if (props.instrumentLocalizations?.length) viewer.setInstrumentLocalizations(props.instrumentLocalizations);
       viewer.setVehiclePose(props.vehiclePose ?? null);
       viewer.setPlaybackTime(props.playbackTime ?? 0);
       viewer.setSelectedObjectId(props.selectedObjectId ?? null);
@@ -116,6 +118,10 @@ export const TwinViewerView = forwardRef<TwinViewerPublicAPI, TwinViewerViewProp
     useEffect(() => {
       viewerRef.current?.setDetectionEvents(props.detectionEvents ?? []);
     }, [props.detectionEvents]);
+
+    useEffect(() => {
+      viewerRef.current?.setInstrumentLocalizations(props.instrumentLocalizations ?? []);
+    }, [props.instrumentLocalizations]);
 
     useEffect(() => {
       viewerRef.current?.setPlaybackTime(props.playbackTime ?? 0);
@@ -182,6 +188,7 @@ function createFacade(get: () => TwinViewer | null): TwinViewerPublicAPI {
     setTrajectory: (t: TwinTrajectoryPoint[]) => need().setTrajectory(t),
     setSensorDevices: (d: SensorDevice[]) => need().setSensorDevices(d),
     setDetectionEvents: (e: DetectionEvent[]) => need().setDetectionEvents(e),
+    setInstrumentLocalizations: (records: InstrumentLocalization[]) => need().setInstrumentLocalizations(records),
     setPlaybackTime: (t: number) => need().setPlaybackTime(t),
     getPlaybackTime: () => need().getPlaybackTime(),
     setSelectedObjectId: (id: string | null) => need().setSelectedObjectId(id),

@@ -3,3 +3,17 @@
 从 PROGRESS.md 续接；不重置原基线。用户要求本阶段不运行单元、集成、E2E、性能或实车测试；保留测试文件，允许必要编译，不将编译当作测试通过。
 
 U 盘离线交接，平台不控制车辆。正式包 v2，真实数据不得改标合成；缺少证据须阻止正式交付。私有数据、原历史和未核对授权的资产不公开。每阶段提交并同步交接检查点。不调用外部模型或多 agent。
+
+## Agent skills
+
+### Issue tracker
+
+规格和任务使用 GitHub Issues：LeoAKALiu/field-inspect。见 docs/agents/issue-tracker.md。
+
+### Triage labels
+
+使用默认五种状态标签。见 docs/agents/triage-labels.md。
+
+### Domain docs
+
+采用 single-context：全项目共用根目录 GLOSSARY.md 和 docs/adr/。见 docs/agents/domain.md。

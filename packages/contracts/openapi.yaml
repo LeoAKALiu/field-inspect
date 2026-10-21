@@ -281,6 +281,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/tasks/{task_id}/pointcloud.ply:
+    get:
+      summary: Get Task Pointcloud
+      operationId: get_task_pointcloud_api_tasks__task_id__pointcloud_ply_get
+      parameters:
+      - name: task_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Task Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/octet-stream: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/tasks/{task_id}/trajectory:
     get:
       summary: Get Task Trajectory
@@ -1072,6 +1094,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/instruments/stations/{attempt_id}/captures/{sequence}/image:
+    get:
+      tags:
+      - Instruments
+      summary: Capture Image
+      operationId: capture_image_api_instruments_stations__attempt_id__captures__sequence__image_get
+      parameters:
+      - name: attempt_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Attempt Id
+      - name: sequence
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Sequence
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            image/png: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/instruments/pages/{kind}:
     get:
       tags:
@@ -1194,6 +1246,48 @@ paths:
           title: Run Id
       responses:
         '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/instruments/runs/{run_id}/marker-localizations:
+    get:
+      tags:
+      - Instruments
+      summary: Marker Localizations
+      operationId: marker_localizations_api_instruments_runs__run_id__marker_localizations_get
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 512
+          default: ''
+          title: Cursor
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 25
+          title: Limit
+      responses:
+        '200':
           description: Successful Response
           content:
             application/json:

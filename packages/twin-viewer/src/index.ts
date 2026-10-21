@@ -1,4 +1,5 @@
 export { TwinViewer } from './TwinViewer.js';
+export { localizationObjectId } from '@digital-twin/contracts';
 export type {
   TwinViewerOptions,
   TwinViewerPublicAPI,

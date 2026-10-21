@@ -77,6 +77,7 @@ const props: TwinViewerProps = {
   trajectory: [],
   sensorDevices: [],
   detectionEvents: [],
+  instrumentLocalizations: [], // 可选；观测定位独立于台账设备，无位置时不上图
   playbackTime: 0,
   selectedObjectId: null,
   cameraCommand: null,
@@ -98,6 +99,8 @@ export function Page() {
   );
 }
 ```
+
+`instrumentLocalizations` 直接消费共享 v0.3 `InstrumentLocalization[]`，保持 scene_local_yup 坐标。点选回调的 `kind='localization'`，对象 ID 使用 `localizationObjectId(localization_id)`，该函数可从 `@digital-twin/contracts` 导入；`focusObject` 与 `selectedObjectId` 使用同一 ID。命令式 API 对应 `setInstrumentLocalizations(records)`。显示定位不会改变资产匹配或复核状态。
 
 ### 回调（契约）
 

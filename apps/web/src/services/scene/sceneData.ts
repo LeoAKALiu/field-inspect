@@ -127,38 +127,41 @@ export function useTaskTrajectory(
   options?: { fillFromSceneRoute?: boolean },
 ): { data: TrajectoryPoint[]; loading: boolean } {
   const fillFromSceneRoute = options?.fillFromSceneRoute ?? true;
-  const [state, setState] = useState<{ data: TrajectoryPoint[]; loading: boolean }>({
+  const key = JSON.stringify([taskId, metadata?.scene_id, metadata?.scene_version_id, fillFromSceneRoute]);
+  const [state, setState] = useState<{ key: string; data: TrajectoryPoint[]; loading: boolean }>({
+    key,
     data: [],
     loading: true,
   });
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     if (!taskId || (fillFromSceneRoute && !metadata)) {
-      setState({ data: [], loading: false });
+      setState({ key, data: [], loading: false });
       return;
     }
-    setState({ data: [], loading: true });
+    setState({ key, data: [], loading: true });
     const fallback =
       fillFromSceneRoute && metadata
         ? deriveTrajectoryFromRoute(metadata.route, taskId)
         : [];
     api
-      .getTaskReplayTrajectory(taskId)
+      .getTaskReplayTrajectory(taskId, controller.signal)
       .catch(() => fallback)
       .then((points) => {
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         setState({
+          key,
           data: points.length > 0 ? points : fallback,
           loading: false,
         });
       });
     return () => {
-      cancelled = true;
+      controller.abort();
     };
-  }, [taskId, metadata, fillFromSceneRoute]);
+  }, [taskId, metadata, fillFromSceneRoute, key]);
 
-  return state;
+  return state.key === key ? state : { data: [], loading: Boolean(taskId) };
 }
 
 /** Display Trajectory for drawing. Recorded Runs never fall back to a scene route. */
@@ -168,48 +171,52 @@ export function useDisplayTrajectory(
   options?: { fillFromSceneRoute?: boolean },
 ): { data: TrajectoryPoint[]; disclaimer: string | null; loading: boolean } {
   const fillFromSceneRoute = options?.fillFromSceneRoute ?? true;
+  const key = JSON.stringify([taskId, metadata?.scene_id, metadata?.scene_version_id, fillFromSceneRoute]);
   const [state, setState] = useState<{
+    key: string;
     data: TrajectoryPoint[];
     disclaimer: string | null;
     loading: boolean;
   }>({
+    key,
     data: [],
     disclaimer: null,
     loading: true,
   });
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     if (!taskId || (fillFromSceneRoute && !metadata)) {
-      setState({ data: [], disclaimer: null, loading: false });
+      setState({ key, data: [], disclaimer: null, loading: false });
       return;
     }
-    setState({ data: [], disclaimer: null, loading: true });
+    setState({ key, data: [], disclaimer: null, loading: true });
     const fallback =
       fillFromSceneRoute && metadata
         ? deriveTrajectoryFromRoute(metadata.route, taskId)
         : [];
     api
-      .getTaskDisplayTrajectory(taskId)
+      .getTaskDisplayTrajectory(taskId, controller.signal)
       .then((payload: DisplayTrajectory) => {
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         const points = payload.points.length > 0 ? payload.points : fallback;
         setState({
+          key,
           data: points,
           disclaimer: payload.disclaimer,
           loading: false,
         });
       })
       .catch(() => {
-        if (cancelled) return;
-        setState({ data: fallback, disclaimer: null, loading: false });
+        if (controller.signal.aborted) return;
+        setState({ key, data: fallback, disclaimer: null, loading: false });
       });
     return () => {
-      cancelled = true;
+      controller.abort();
     };
-  }, [taskId, metadata, fillFromSceneRoute]);
+  }, [taskId, metadata, fillFromSceneRoute, key]);
 
-  return state;
+  return state.key === key ? state : { data: [], disclaimer: null, loading: Boolean(taskId) };
 }
 
 /** Load Scene Metadata bound to a Recorded Run's original Scene Version. */
@@ -217,36 +224,38 @@ export function useBoundSceneMetadata(
   sceneId: string | null,
   sceneVersionId: string | null,
 ): { data: SceneMetadata | null; loading: boolean } {
-  const [state, setState] = useState<{ data: SceneMetadata | null; loading: boolean }>({
+  const key = JSON.stringify([sceneId, sceneVersionId]);
+  const [state, setState] = useState<{ key: string; data: SceneMetadata | null; loading: boolean }>({
+    key,
     data: null,
     loading: true,
   });
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     if (!sceneId) {
-      setState({ data: null, loading: false });
+      setState({ key, data: null, loading: false });
       return;
     }
-    setState({ data: null, loading: true });
+    setState({ key, data: null, loading: true });
     const params = sceneVersionId ? { scene_version_id: sceneVersionId } : {};
     api
-      .getSceneMetadata(sceneId, params)
+      .getSceneMetadata(sceneId, params, controller.signal)
       .then((metadata) => {
-        if (cancelled) return;
-        if (sceneVersionId && metadata.scene_version_id !== sceneVersionId) {
-          setState({ data: null, loading: false });
+        if (controller.signal.aborted) return;
+        if (metadata.scene_id !== sceneId || (sceneVersionId && metadata.scene_version_id !== sceneVersionId)) {
+          setState({ key, data: null, loading: false });
           return;
         }
-        setState({ data: metadata, loading: false });
+        setState({ key, data: metadata, loading: false });
       })
       .catch(() => {
-        if (!cancelled) setState({ data: null, loading: false });
+        if (!controller.signal.aborted) setState({ key, data: null, loading: false });
       });
     return () => {
-      cancelled = true;
+      controller.abort();
     };
-  }, [sceneId, sceneVersionId]);
+  }, [sceneId, sceneVersionId, key]);
 
-  return state;
+  return state.key === key ? state : { data: null, loading: Boolean(sceneId) };
 }

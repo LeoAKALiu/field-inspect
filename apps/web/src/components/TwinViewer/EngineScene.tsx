@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { TwinViewerView } from '@digital-twin/twin-viewer/react';
-import type { TwinViewerPublicAPI } from '@digital-twin/twin-viewer';
+import { IDENTITY_MATRIX_4, type TwinViewerPublicAPI } from '@digital-twin/twin-viewer';
 import type { TwinDisplayMode, TwinViewerProps } from '@digital-twin/contracts';
-import { useEngineSceneMetadata } from '../../services/scene/engineMetadata';
+import { LIRIS_MESH_URL, LIRIS_POINTCLOUD_URL, useEngineSceneMetadata } from '../../services/scene/engineMetadata';
 import { MockViewer } from './MockViewer';
 import { Box, Cloud, Crosshair, Layers, RotateCcw } from 'lucide-react';
 
@@ -34,6 +34,7 @@ export default function EngineScene(props: TwinViewerProps) {
     trajectory,
     sensorDevices,
     detectionEvents,
+    instrumentLocalizations,
     playbackTime,
     selectedObjectId,
     cameraCommand,
@@ -46,7 +47,10 @@ export default function EngineScene(props: TwinViewerProps) {
     onCameraChanged,
   } = props;
 
-  const { data: engineMetadata, loading: metaLoading, error: metaError } = useEngineSceneMetadata();
+  const lirisMesh = meshUrl === LIRIS_MESH_URL;
+  const lirisCloud = pointCloudUrl === LIRIS_POINTCLOUD_URL;
+  const usesLirisAssets = lirisMesh || lirisCloud;
+  const { data: engineMetadata, loading: metaLoading, error: metaError } = useEngineSceneMetadata(usesLirisAssets);
   const viewerApiRef = useRef<TwinViewerPublicAPI>(null);
 
   // HUD：显示模式（与 props.displayMode 双向同步，页面与 HUD 均可切换）
@@ -57,6 +61,7 @@ export default function EngineScene(props: TwinViewerProps) {
   const [showDevices, setShowDevices] = useState(true);
   const [showEvents, setShowEvents] = useState(true);
   const [showTrajectory, setShowTrajectory] = useState(true);
+  const [showLocalizations, setShowLocalizations] = useState(true);
 
   const engineDevices = useMemo(
     () => (showDevices ? sensorDevices : []),
@@ -67,10 +72,10 @@ export default function EngineScene(props: TwinViewerProps) {
     [detectionEvents, showEvents],
   );
 
-  if (metaError) {
+  if (usesLirisAssets && metaError) {
     return <MockViewer state="unavailable" height={height} />;
   }
-  if (metaLoading || !engineMetadata) {
+  if (usesLirisAssets && (metaLoading || !engineMetadata)) {
     return <MockViewer state="loading" height={height} />;
   }
 
@@ -79,15 +84,19 @@ export default function EngineScene(props: TwinViewerProps) {
       <TwinViewerView
         ref={viewerApiRef}
         className="twin-canvas"
-        sceneMetadata={engineMetadata}
+        sceneMetadata={sceneMetadata}
         meshUrl={meshUrl ?? null}
         pointCloudUrl={pointCloudUrl ?? null}
         displayMode={mode}
-        options={{ transformMatrix: engineMetadata.transformMatrix }}
+        options={{
+          transformMatrix: lirisMesh ? engineMetadata?.transformMatrix : undefined,
+          pointCloudTransformMatrix: lirisCloud ? engineMetadata?.transformMatrix : IDENTITY_MATRIX_4,
+        }}
         vehiclePose={vehiclePose}
         trajectory={showTrajectory ? trajectory : []}
         sensorDevices={engineDevices}
         detectionEvents={engineEvents}
+        instrumentLocalizations={showLocalizations ? instrumentLocalizations : []}
         playbackTime={playbackTime}
         selectedObjectId={selectedObjectId}
         cameraCommand={cameraCommand}
@@ -138,6 +147,10 @@ export default function EngineScene(props: TwinViewerProps) {
               <span>异常候选 ({detectionEvents.length})</span>
             </label>
             <label className="hud-checkbox">
+              <input type="checkbox" checked={showLocalizations} onChange={event => setShowLocalizations(event.target.checked)} />
+              <span>观测定位 · 黄色方框 ({instrumentLocalizations?.filter(record => record.position).length ?? 0})</span>
+            </label>
+            <label className="hud-checkbox">
               <input
                 type="checkbox"
                 checked={showTrajectory}
@@ -150,11 +163,9 @@ export default function EngineScene(props: TwinViewerProps) {
 
         <div className="hud-row hud-bottom-row">
           <span className="scene-corner-badge">
-            LIRIS 公开 OBJ/PLY｜路线
-            {sceneMetadata.route_provenance?.status === 'measured'
-              ? '实测'
-              : '由点云自动提取（算法估计）'}
-            ｜车辆/监测为模拟｜甲方数据未接入
+            {sceneMetadata.scene_version_id
+              ? `场景版本 ${sceneMetadata.scene_version_id}｜运行轨迹与证据按各自来源展示`
+              : 'LIRIS 公开 OBJ/PLY｜演示路线与模拟车辆/监测'}
           </span>
           <div className="hud-actions-group">
             <button
@@ -165,7 +176,7 @@ export default function EngineScene(props: TwinViewerProps) {
                   objectId: 'inspection-vehicle',
                 })
               }
-              title="定位模拟巡检车"
+              title="定位巡检车"
             >
               <Crosshair size={16} />
               <span>定位巡检车</span>

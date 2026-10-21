@@ -1,5 +1,7 @@
 import { RunAssetEvidence, useRunAssets } from '../components/RunAssetEvidence';
 import { RunStationPanel } from '../components/RunStationPanel';
+import { RunLocalizationPanel } from '../components/RunLocalizationPanel';
+import { localizationObjectId, type CameraCommand } from '@digital-twin/contracts';
 import React, { useEffect, useMemo, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { getMultiChannelPlaybackOption } from '../services/mock/mockTelemetryData';
@@ -16,6 +18,9 @@ import {
 } from '../services/mock/sceneFallback';
 import { TwinViewerAdapter } from '../components/TwinViewer/TwinViewerAdapter';
 import { recordedRunLabel, severityLabel } from '../utils/labels';
+import { useRecordedPointCloud } from '../services/scene/useRecordedPointCloud';
+import { useRunLocalizations, type MarkerLocalization } from '../services/scene/useRunLocalizations';
+import { useTasks } from '../services/api/hooks';
 import {
   Play,
   Pause,
@@ -29,6 +34,7 @@ import {
 
 export const TaskPlaybackPage: React.FC = () => {
   const { data: scene, loading } = useSceneData();
+  const { data: tasks, loading: tasksLoading, error: tasksError } = useTasks();
   const [catalog, setCatalog] = useState<'recorded' | 'demonstration'>('recorded');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
@@ -37,11 +43,11 @@ export const TaskPlaybackPage: React.FC = () => {
 
   const recordedTasks = useMemo(
     () =>
-      (scene?.tasks ?? [])
+      (tasks ?? [])
         .filter((task) => task.run_kind === 'recorded')
         .slice()
         .sort((a, b) => (b.actual_end ?? '').localeCompare(a.actual_end ?? '')),
-    [scene?.tasks],
+    [tasks],
   );
   const demonstrationTasks = useMemo(
     () => (scene?.tasks ?? []).filter((task) => task.run_kind !== 'recorded'),
@@ -54,6 +60,14 @@ export const TaskPlaybackPage: React.FC = () => {
   const [assetSelection, setAssetSelection] = useState<{ runId: string; assetId: string; at: string } | null>(null);
   const { devices: registeredDevices, error: assetError } = useRunAssets(selectedTask?.scene_id, selectedTask?.scene_version_id);
   const isRecorded = selectedTask?.run_kind === 'recorded';
+  const pointCloud = useRecordedPointCloud(isRecorded && selectedTask?.has_pointcloud ? selectedTask.id : null);
+  const localizations = useRunLocalizations(isRecorded ? selectedTask.id : null, selectedTask?.scene_version_id, selectedTask?.alignment_id);
+  const [localizationSelection, setLocalizationSelection] = useState<{ runId: string; id: string; camera: CameraCommand | null } | null>(null);
+  const [viewerError, setViewerError] = useState<{ binding: string; message: string } | null>(null);
+  const viewerBinding = JSON.stringify([selectedTask?.id, selectedTask?.scene_version_id, pointCloud.url]);
+  const selectedLocalization = localizationSelection?.runId === selectedTask?.id
+    ? localizations.rows.find(entry => entry.localization.localization_id === localizationSelection?.id) : undefined;
+  const viewerLocalizations = useMemo(() => localizations.rows.map(entry => entry.localization), [localizations.rows]);
   const { data: boundMetadata, loading: boundLoading } = useBoundSceneMetadata(
     isRecorded && selectedTask?.scene_version_id ? selectedTask.scene_id : null,
     isRecorded ? (selectedTask?.scene_version_id ?? null) : null,
@@ -81,6 +95,16 @@ export const TaskPlaybackPage: React.FC = () => {
       : isRecorded || replayTimes.length === 0
         ? 0
         : 120;
+
+  function selectLocalization(entry: MarkerLocalization, focus: boolean) {
+    if (!selectedTask || entry.localization.run_id !== selectedTask.id) return;
+    setIsPlaying(false);
+    setAssetSelection(null);
+    setLocalizationSelection({ runId: selectedTask.id, id: entry.localization.localization_id,
+      camera: focus && entry.localization.position ? { type: 'focusObject', objectId: localizationObjectId(entry.localization.localization_id) } : null });
+    const seconds = trajectory[0] ? (Date.parse(entry.captured_at) - Date.parse(trajectory[0].timestamp)) / 1000 : NaN;
+    if (Number.isFinite(seconds) && seconds >= 0 && seconds <= maxDuration) setPlaybackTime(seconds);
+  }
 
   // 任务切换后回到起点
   useEffect(() => {
@@ -143,7 +167,7 @@ export const TaskPlaybackPage: React.FC = () => {
       <div className="playback-top-bar">
         {catalog === 'recorded' && recordedTasks.length === 0 ? (
           <div className="recorded-empty" data-testid="recorded-run-empty">
-            <span>暂无现场实录运行</span>
+            <span>{tasksLoading ? '正在读取现场实录运行…' : tasksError ? '现场实录运行列表读取失败，请核对服务与授权后刷新。' : '暂无现场实录运行'}</span>
             <button
               type="button"
               className="demo-entry-btn"
@@ -290,6 +314,7 @@ export const TaskPlaybackPage: React.FC = () => {
               ) : (
               <>
               <TwinViewerAdapter
+                key={`${selectedTask?.id}:${pointCloud.url ?? ''}`}
                 sceneMetadata={isRecorded ? boundMetadata! : scene.metadata}
                 meshUrl={
                   isRecorded
@@ -298,7 +323,7 @@ export const TaskPlaybackPage: React.FC = () => {
                 }
                 pointCloudUrl={
                   selectedTask?.run_kind === 'recorded'
-                    ? null
+                    ? (pointCloud.url ?? null)
                     : (scene.metadata.pointcloud_url ?? null)
                 }
                 displayMode={
@@ -310,12 +335,21 @@ export const TaskPlaybackPage: React.FC = () => {
                 trajectory={twinTrajectory}
                 sensorDevices={selectedTask?.run_kind === 'recorded' ? registeredDevices : scene.devices}
                 detectionEvents={displayEvents}
+                instrumentLocalizations={viewerLocalizations}
                 playbackTime={playbackTime}
-                selectedObjectId={assetSelection?.runId === selectedTask?.id ? assetSelection?.assetId ?? null : null}
-                cameraCommand={null}
+                selectedObjectId={selectedLocalization ? localizationObjectId(selectedLocalization.localization.localization_id)
+                  : assetSelection?.runId === selectedTask?.id ? assetSelection?.assetId ?? null : null}
+                cameraCommand={selectedLocalization ? localizationSelection?.camera ?? null : null}
+                onViewerError={error => setViewerError({ binding: viewerBinding, message: error.message })}
                 onObjectSelect={event => {
+                  if (event.kind === 'localization') {
+                    const entry = localizations.rows.find(item => localizationObjectId(item.localization.localization_id) === event.id);
+                    if (entry) selectLocalization(entry, false);
+                    return;
+                  }
                   if (event.kind !== 'device' || !selectedTask || !trajectory[0] || !registeredDevices.some(d => d.id === event.id)) return;
                   setIsPlaying(false);
+                  setLocalizationSelection(null);
                   setAssetSelection({ runId: selectedTask.id, assetId: event.id,
                     at: new Date(Date.parse(trajectory[0].timestamp) + playbackTime * 1000).toISOString() });
                 }}
@@ -332,6 +366,14 @@ export const TaskPlaybackPage: React.FC = () => {
                   本包未提供点云
                 </p>
               ) : null}
+              {isRecorded && pointCloud.loading && <p className="recorded-not-provided">正在校验并读取本运行点云…</p>}
+              {isRecorded && pointCloud.notice && <p className="recorded-not-provided">{pointCloud.notice}</p>}
+              {isRecorded && pointCloud.error && <p className="recorded-not-provided" role="alert">
+                {pointCloud.error} <button type="button" onClick={pointCloud.retry}>重试点云</button>
+              </p>}
+              {viewerError?.binding === viewerBinding && <p className="recorded-not-provided" role="alert">
+                三维场景加载失败，请核对点云格式、场景资产和浏览器图形支持。{viewerError.message}
+              </p>}
               {selectedTask?.run_kind === 'recorded' ? (
                 <p className="recorded-not-provided" data-testid="devices-not-provided">
                   {assetError || (registeredDevices.length ? `显示 ${registeredDevices.length} 台同版本台账设备；离线表示未连接实时遥测，点击查看当前回放时刻的读数。` : '此场景版本尚无登记设备')}
@@ -349,6 +391,10 @@ export const TaskPlaybackPage: React.FC = () => {
           {selectedTask && <RunStationPanel key={selectedTask.id} runId={selectedTask.id}
             origin={trajectory[0]?.timestamp} end={maxDuration}
             onSeek={time => { setIsPlaying(false); setPlaybackTime(time); }} />}
+
+          {isRecorded && selectedTask && <RunLocalizationPanel runId={selectedTask.id} page={localizations}
+            trajectoryStart={trajectory[0]?.timestamp} trajectoryEnd={trajectory[trajectory.length - 1]?.timestamp}
+            selected={selectedLocalization} onSelect={selectLocalization} onClose={() => setLocalizationSelection(null)} />}
 
           <div className="panel-card">
             <div className="panel-header">

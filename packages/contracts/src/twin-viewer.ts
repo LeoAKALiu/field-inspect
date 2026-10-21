@@ -13,6 +13,7 @@
 
 import type {
   DetectionEvent,
+  InstrumentLocalization,
   Position3D,
   SceneMetadata,
   SensorDevice,
@@ -58,17 +59,24 @@ export interface TwinViewerInputs {
   trajectory: TwinTrajectoryPoint[];
   sensorDevices: SensorDevice[];
   detectionEvents: DetectionEvent[];
+  /** Independent observation positions; absent positions are never placed in the scene. */
+  instrumentLocalizations?: InstrumentLocalization[];
   /** 当前播放时刻（相对任务开始的秒数）。 */
   playbackTime: number;
   selectedObjectId: string | null;
   cameraCommand: CameraCommand | null;
 }
 
+/** Viewer object identity for an observation position, separate from registered asset IDs. */
+export function localizationObjectId(id: string): string {
+  return `localization:${id}`;
+}
+
 // ---------------------------------------------------------------------------
 // 事件回调
 // ---------------------------------------------------------------------------
 
-export type TwinSelectableKind = 'device' | 'event' | 'vehicle' | 'mesh' | 'point' | 'scene';
+export type TwinSelectableKind = 'device' | 'event' | 'localization' | 'vehicle' | 'mesh' | 'point' | 'scene';
 
 export interface TwinObjectSelectEvent {
   id: string;
