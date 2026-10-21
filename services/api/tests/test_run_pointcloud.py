@@ -132,14 +132,59 @@ def test_rejects_nonfinite_and_incomplete_pcd():
         run_pointcloud._pcd(raw + b"truncated")
 
 
-def test_existing_ply_is_returned_unchanged(cloud):
+@pytest.mark.parametrize("encoding", ["ascii", "binary_little_endian", "binary_big_endian"])
+def test_existing_ply_is_returned_unchanged(cloud, encoding):
     db, _, _, manifest, write, save = cloud
     path = "artifacts/preview.ply"
-    raw = b"ply\nformat ascii 1.0\nelement vertex 1\nproperty float x\nproperty float y\nproperty float z\nend_header\n1 2 3\n"
+    header = (f"ply\nformat {encoding} 1.0\nelement vertex 1\nproperty float z\n"
+              "property uchar red\nproperty double x\nproperty short y\n"
+              "element face 1\nproperty list uchar int vertex_indices\nend_header\n")
+    body = b"3 255 1 2\n3 0 0 0\n" if encoding == "ascii" else struct.pack(
+        ("<" if encoding == "binary_little_endian" else ">") + "fBdhBiii", 3, 255, 1, 2, 3, 0, 0, 0)
+    raw = header.encode() + body
     write(path, raw)
     manifest["artifacts"] = [{"path": path, "kind": "pointcloud", "display": True}]
     save()
-    assert run_pointcloud.preview(db, RUN)[0] == raw
+    result, headers = run_pointcloud.preview(db, RUN)
+    assert result == raw
+    assert headers["X-Pointcloud-Source-Points"] == headers["X-Pointcloud-Preview-Points"] == "1"
+
+
+@pytest.mark.parametrize("encoding", ["ascii", "binary_little_endian", "binary_big_endian"])
+@pytest.mark.parametrize("fault", ["truncated", "extra", "nonfinite", "out_of_bounds", "missing_z"])
+def test_ply_body_is_checked_even_with_a_matching_inventory_digest(cloud, encoding, fault):
+    db, root, _, manifest, write, save = cloud
+    path = "artifacts/preview.ply"
+    properties = "property float x\nproperty float y\nproperty float z\n"
+    coordinates = [1, 2, 3]
+    if fault == "missing_z":
+        properties = "property float x\nproperty float y\n"
+        coordinates = [1, 2]
+    if fault == "nonfinite": coordinates[0] = float("nan")
+    if fault == "out_of_bounds": coordinates[0] = 10_001
+    header = f"ply\nformat {encoding} 1.0\nelement vertex 2\n{properties}end_header\n"
+    if encoding == "ascii":
+        row = (" ".join(str(value) for value in coordinates) + "\n").encode()
+    else:
+        row = struct.pack(("<" if encoding == "binary_little_endian" else ">") + "f" * len(coordinates), *coordinates)
+    raw = header.encode() + row * (1 if fault == "truncated" else 3 if fault == "extra" else 2)
+    write(path, raw)
+    manifest["artifacts"] = [{"path": path, "kind": "pointcloud", "display": True}]
+    save()
+    with pytest.raises(run_pointcloud.PointCloudPreviewError):
+        run_pointcloud.preview(db, RUN)
+    assert (root / path).read_bytes() == raw
+
+
+def test_ply_point_limit_and_numeric_tokens():
+    header = ("ply\nformat ascii 1.0\nelement vertex 1\nproperty float x\n"
+              "property float y\nproperty float z\nend_header\n").encode()
+    with pytest.raises(run_pointcloud.PointCloudPreviewError, match="numeric token"):
+        run_pointcloud._ply_count(header + b"1_0 2 3\n")
+    oversized = header.replace(b"vertex 1", b"vertex 500001")
+    with pytest.raises(run_pointcloud.PointCloudPreviewError) as caught:
+        run_pointcloud._ply_count(oversized)
+    assert caught.value.code == "pointcloud_size_limit"
 
 
 def test_preview_does_not_overlap_import_writer(cloud):
@@ -164,5 +209,48 @@ def test_preview_endpoint_is_protected_and_private(cloud, client, monkeypatch):
         assert response.content.startswith(b"ply\n")
         assert response.headers["cache-control"] == "private, no-store"
         assert response.headers["x-content-type-options"] == "nosniff"
+    finally:
+        client.app.dependency_overrides.clear()
+
+
+@pytest.mark.parametrize("fault, code", [
+    ("digest", "pointcloud_digest_mismatch"), ("size", "pointcloud_size_limit"),
+    ("missing", "pointcloud_file_missing"), ("format", "pointcloud_invalid_format"),
+    ("coordinates", "pointcloud_invalid_coordinates"), ("count", "pointcloud_count_mismatch"),
+    ("binding", "pointcloud_binding_mismatch"), ("symlink", "pointcloud_unsafe_path"),
+])
+def test_preview_endpoint_preserves_safe_failure_reasons(cloud, client, monkeypatch, tmp_path, fault, code):
+    from app.routers import get_db
+
+    db, root, document, _, write, save = cloud
+    chunk = document["chunks"][0]
+    path = root / chunk["path"]
+    if fault == "digest": path.write_bytes(b"changed")
+    elif fault == "size": monkeypatch.setattr(run_pointcloud, "MAX_SOURCE_BYTES", 1)
+    elif fault == "missing": path.unlink()
+    elif fault == "format":
+        chunk["sha256"] = write(chunk["path"], b"POINTS 3\nDATA binary\n")
+    elif fault == "coordinates":
+        raw = path.read_bytes()
+        header, body = raw.split(b"DATA binary\n", 1)
+        chunk["sha256"] = write(chunk["path"], header + b"DATA binary\n" + struct.pack("<f", float("nan")) + body[4:])
+    elif fault == "count": chunk["output_point_count"] = 2
+    elif fault == "binding": document["alignment"]["verified"] = False
+    elif fault == "symlink":
+        outside = tmp_path / "private-cloud.pcd"
+        path.rename(outside)
+        path.symlink_to(outside)
+    save()
+    monkeypatch.delenv("FIELD_AUTH_FILE", raising=False)
+    monkeypatch.setenv("ASTRA_API_TOKEN", "pointcloud-test-token")
+    client.app.dependency_overrides[get_db] = lambda: db
+    try:
+        response = client.get(f"/api/tasks/{RUN}/pointcloud.ply", headers={"Authorization": "Bearer pointcloud-test-token"})
+        assert response.status_code == 422
+        assert response.json()["error"]["code"] == code
+        assert response.json()["error"]["message"]
+        assert str(root) not in response.text
+        assert "private-cloud" not in response.text
+        if fault == "size": assert "512 MiB" in response.json()["error"]["message"]
     finally:
         client.app.dependency_overrides.clear()
