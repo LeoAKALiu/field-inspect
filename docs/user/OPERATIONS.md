@@ -2,7 +2,9 @@
 
 ## 本机启动
 
-依赖和前端编译完成后，在 PowerShell 运行 `./scripts/start-local.ps1`。默认仅监听本机；网页为 http://127.0.0.1:4173，API 为 http://127.0.0.1:8000。持久数据和日志位于项目工作根 private/runtime，脚本不会覆盖已有端口上的服务。
+依赖和前端编译完成后，Mac 在项目根目录运行 `python3 scripts/start-local.py`，保持终端开启，按 Ctrl+C 停止。默认数据和日志保存在 `~/Library/Application Support/FieldInspect/`。准备、目录配置、故障日志和恢复步骤见 [Mac 离线运行](../development/MAC_RUNTIME.md)。
+
+Windows 在 PowerShell 运行 `./scripts/start-local.ps1`，持久数据和日志位于项目工作根 private/runtime。两个入口默认仅监听本机；网页为 http://127.0.0.1:4173，API 为 http://127.0.0.1:8000，均不覆盖已有端口上的服务。Mac CLI 导入须使用与启动器相同的 TWIN_DB_PATH 和 TWIN_IMPORT_ROOT。
 
 ## 巡检包
 
