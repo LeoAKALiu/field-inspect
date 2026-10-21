@@ -88,6 +88,7 @@ health_monitor:
 localization_adapter:
   ros__parameters:
     input_odom_topic: "/Odometry"
+    output_odom_topic: "/localization/odometry"
     health_topic: "/safety/tf_healthy"
     diagnostics_topic: "/diagnostics"
     input_global_frame: "camera_init"
@@ -141,6 +142,11 @@ safety_mux:
 
 route_orchestrator:
   ros__parameters:
+    station_pose_topic: "/localization/odometry"
+    station_motion_topic: "/odom"
+    station_health_topic: "/safety/tf_healthy"
+    station_base_frame: "base_link"
+    station_odom_frame: "odom"
     fixed_route_path: ""
     controller_config: "nav2_controller.yaml"
     controller_tuning_verified: false

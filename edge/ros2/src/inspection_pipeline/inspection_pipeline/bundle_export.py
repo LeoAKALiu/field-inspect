@@ -28,7 +28,7 @@ from inspection_pipeline.run_manifest import (
 from inspection_pipeline.station_attempts import StationEvidenceError
 from inspection_pipeline.station_attempts_export import validate_station_attempts_artifact
 from inspection_pipeline.trajectory import TrajectoryError, validate_trajectory_document
-from inspection_pipeline.trajectory_export import load_scene_alignment
+from inspection_pipeline.trajectory_export import load_scene_alignment, _load_run_contract, _pose_contract
 
 BUNDLE_SCHEMA_VERSION = "1.0"  # Internal operational/provenance schema; formal transfer is v2.
 BAGIT_VERSION = "1.0"
@@ -240,8 +240,32 @@ def _build_semantic_manifest(
         raise BundleExportError("trajectory alignment_id does not match export alignment_id")
 
     provenance = _load_json(run_dir / "replay/trajectory.provenance.json")
-    if provenance.get("schema_version") != BUNDLE_SCHEMA_VERSION:
-        raise BundleExportError("trajectory provenance schema_version must be 1.0")
+    try:
+        system = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        raise BundleExportError("cannot read recorded pose config") from exc
+    localization = system.get("localization_adapter", {}) if isinstance(system, dict) else {}
+    localization = localization.get("ros__parameters", localization) if isinstance(localization, dict) else {}
+    if not isinstance(localization, dict):
+        raise BundleExportError("recorded localization config must be a mapping")
+    normalized = "output_odom_topic" in localization
+    expected_version = "1.1" if normalized else BUNDLE_SCHEMA_VERSION
+    if provenance.get("schema_version") != expected_version:
+        raise BundleExportError("trajectory provenance schema_version disagrees with recorded pose contract")
+    if normalized:
+        try:
+            _, _, localization, _, base_to_body = _load_run_contract(run_dir)
+            pose_topic, pose_parent, pose_child, pose_to_base = _pose_contract(localization, base_to_body)
+        except TrajectoryError as exc:
+            raise BundleExportError("invalid normalized pose contract") from exc
+        expected = {"pose_semantics": "normalized_map_base", "pose_topic": pose_topic,
+                    "pose_parent_frame": pose_parent, "body_frame": pose_child,
+                    "pose_to_base": {"translation_m": list(pose_to_base.translation),
+                                     "rotation_xyzw": list(pose_to_base.rotation)},
+                    "base_to_body": {"translation_m": list(base_to_body.translation),
+                                     "rotation_xyzw": list(base_to_body.rotation)}}
+        if any(provenance.get(key) != value for key, value in expected.items()):
+            raise BundleExportError("normalized trajectory provenance disagrees with recorded pose contract")
     if provenance.get("run_id") != run_id:
         raise BundleExportError("trajectory provenance run_id mismatch")
     if provenance.get("coordinate_system") != "scene_local_yup":

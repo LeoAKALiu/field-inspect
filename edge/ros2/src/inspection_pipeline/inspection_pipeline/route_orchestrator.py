@@ -20,6 +20,7 @@ from inspection_pipeline.station_capture import StationCapture
 from rclpy.action import ActionClient
 from rclpy.node import Node
 from std_srvs.srv import Trigger
+from std_msgs.msg import Bool
 
 from inspection_pipeline.fixed_route import (
     HARD_MAX_LINEAR_MPS,
@@ -90,9 +91,16 @@ class RouteOrchestrator(Node):
                 "fixed route approved speed exceeds the configured controller limit"
             )
 
-        self.declare_parameter("station_pose_topic", "/Odometry")
+        self.declare_parameter("station_pose_topic", "/localization/odometry")
+        self.declare_parameter("station_motion_topic", "/odom")
+        self.declare_parameter("station_health_topic", "/safety/tf_healthy")
+        self.declare_parameter("station_base_frame", "base_link")
+        self.declare_parameter("station_odom_frame", "odom")
         self.declare_parameter("station_image_topic", "/camera/image_raw")
-        self._capture = StationCapture()
+        self._capture = StationCapture(
+            pose_topic=str(self.get_parameter("station_pose_topic").value),
+            motion_topic=str(self.get_parameter("station_motion_topic").value),
+            health_topic=str(self.get_parameter("station_health_topic").value))
         self._capture_run = None
         self._capture_run_id = ""
         self._machine = RouteMachine(self._route)
@@ -153,6 +161,10 @@ class RouteOrchestrator(Node):
         )
         self.create_subscription(Odometry, str(self.get_parameter("station_pose_topic").value),
                                  self._capture_odometry, 10)
+        self.create_subscription(Odometry, str(self.get_parameter("station_motion_topic").value),
+                                 self._capture_motion, 10)
+        self.create_subscription(Bool, str(self.get_parameter("station_health_topic").value),
+                                 lambda message: self._capture.localization_health(message.data), 10)
         self.create_subscription(Image, str(self.get_parameter("station_image_topic").value),
                                  self._capture_image, 10)
         self.create_service(Trigger, "route/retry_capture", self._retry_capture)
@@ -470,12 +482,20 @@ class RouteOrchestrator(Node):
 
     def _capture_odometry(self, message):
         if self._machine.state == RouteState.AT_STATION and self._inspection_ready():
-            self._capture.odometry(message, self._route.frame_id)
+            self._capture.odometry(message, self._route.frame_id,
+                                   str(self.get_parameter("station_base_frame").value),
+                                   self.get_clock().now().nanoseconds)
+
+    def _capture_motion(self, message):
+        if self._machine.state == RouteState.AT_STATION and self._inspection_ready():
+            self._capture.measured_motion(message, str(self.get_parameter("station_odom_frame").value),
+                                          str(self.get_parameter("station_base_frame").value),
+                                          self.get_clock().now().nanoseconds)
 
     def _capture_image(self, message):
         if self._machine.state == RouteState.AT_STATION and self._inspection_ready():
             try:
-                self._capture.image(message)
+                self._capture.image(message, self.get_clock().now().nanoseconds)
             except OSError:
                 self._capture.failed = True
                 self._capture.reason = "station_storage_unavailable"

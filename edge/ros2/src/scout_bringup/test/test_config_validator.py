@@ -24,6 +24,15 @@ def test_default_system_yaml_is_valid() -> None:
     assert validate_config_file(config_path) == []
 
 
+@pytest.mark.parametrize("key,value", [("station_pose_topic", "/Odometry"),
+                                       ("station_motion_topic", "/localization/odometry"),
+                                       ("station_base_frame", "body")])
+def test_capture_inputs_must_match_normalized_contract(valid_config, key, value):
+    broken = deepcopy(valid_config)
+    broken["route_orchestrator"][key] = value
+    assert any(f"route_orchestrator.{key}" in error for error in validate_config(broken))
+
+
 def test_default_system_yaml_uses_stable_can_and_hold_to_run() -> None:
     """The shipped motion contract must use the verified guarded defaults."""
     config_path = Path(__file__).resolve().parents[1] / "config" / "system.yaml"

@@ -19,6 +19,7 @@ from ament_index_python.packages import get_package_share_directory
 from nav_msgs.msg import Odometry
 from rclpy.serialization import deserialize_message
 from scipy.spatial.transform import Rotation
+from inspection_pipeline.odometry import covariance_matrix
 
 from inspection_pipeline.trajectory import (
     PoseSample,
@@ -267,6 +268,23 @@ def _stamp_ns(message: Odometry) -> int:
     )
 
 
+def _pose_contract(localization, base_to_body):
+    """New snapshots consume normalized poses; legacy snapshots retain raw semantics."""
+    if "output_odom_topic" in localization:
+        topic = localization["output_odom_topic"]
+        if (not isinstance(topic, str) or not topic.startswith("/")
+                or topic == localization.get("input_odom_topic")):
+            raise TrajectoryError("invalid normalized odometry topic")
+        if any(not isinstance(localization.get(k), str) or not localization[k].strip()
+               for k in ("map_frame", "base_frame")):
+            raise TrajectoryError("normalized odometry requires map/base frames")
+        return (topic, localization["map_frame"], localization["base_frame"],
+                RigidTransform((0., 0., 0.), (0., 0., 0., 1.)))
+    return (str(localization.get("input_odom_topic", "")),
+            str(localization.get("input_global_frame", "")),
+            str(localization.get("body_frame", "")), base_to_body)
+
+
 def _read_odometry_samples(
     bag_dir: Path,
     *,
@@ -277,6 +295,7 @@ def _read_odometry_samples(
     storage_id: str,
     max_pose_samples: int = 1_000_000,
     max_speed_samples: int = 1_000_000,
+    normalized: bool = False,
 ) -> tuple[list[PoseSample], list[SpeedSample]]:
     if max_pose_samples <= 0 or max_speed_samples <= 0:
         raise TrajectoryError("odometry sample limits must be positive")
@@ -317,6 +336,11 @@ def _read_odometry_samples(
         message = deserialize_message(serialized, Odometry)
         stamp_ns = _stamp_ns(message)
         if topic == pose_topic:
+            if normalized:
+                try:
+                    covariance_matrix(message.pose.covariance)
+                except ValueError as exc:
+                    raise TrajectoryError("invalid normalized pose covariance") from exc
             pose = message.pose.pose
             poses.append(
                 PoseSample(
@@ -440,7 +464,7 @@ def export_trajectory(
     storage_id = str(bag_reference.get("storage_id", ""))
     if storage_id != "mcap" and not allow_non_mcap_bag:
         raise TrajectoryError("inspection trajectory export requires MCAP storage")
-    pose_topic = str(localization.get("input_odom_topic", ""))
+    pose_topic, pose_parent, pose_child, pose_extrinsic = _pose_contract(localization, base_to_body)
     speed_topic = (
         str(health.get("scout_odom_topic", ""))
         if max_speed_skew_ms is not None
@@ -455,14 +479,15 @@ def export_trajectory(
         odom_frame=str(localization.get("odom_frame", "")),
         base_frame=str(localization.get("base_frame", "")),
         storage_id=storage_id,
+        normalized="output_odom_topic" in localization,
     )
     trajectory = build_trajectory(
         run_id=run_id,
         alignment=alignment,
         poses=poses,
-        base_to_body=base_to_body,
-        input_global_frame=str(localization.get("input_global_frame", "")),
-        body_frame=str(localization.get("body_frame", "")),
+        base_to_body=pose_extrinsic,
+        input_global_frame=pose_parent,
+        body_frame=pose_child,
         speed_samples=speeds,
         max_speed_skew_ms=max_speed_skew_ms,
     )
@@ -484,8 +509,8 @@ def export_trajectory(
         "last_pose_stamp_ns": poses[-1].stamp_ns,
         "pose_topic": pose_topic,
         "pose_type": "nav_msgs/msg/Odometry",
-        "pose_parent_frame": str(localization.get("input_global_frame", "")),
-        "body_frame": str(localization.get("body_frame", "")),
+        "pose_parent_frame": pose_parent,
+        "body_frame": pose_child,
         "map_frame": str(localization.get("map_frame", "")),
         "base_frame": str(localization.get("base_frame", "")),
         "bag_storage_id": storage_id,
@@ -509,6 +534,10 @@ def export_trajectory(
         },
         "contract_authority": contract_lock["authority"],
     }
+    if "output_odom_topic" in localization:
+        provenance.update(schema_version="1.1", pose_semantics="normalized_map_base",
+                          pose_to_base={"translation_m": list(pose_extrinsic.translation),
+                                        "rotation_xyzw": list(pose_extrinsic.rotation)})
 
     alignment_target = source / "config/scene_alignment.yaml"
     trajectory_target = source / "replay/trajectory.json"

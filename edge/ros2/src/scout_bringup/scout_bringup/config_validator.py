@@ -751,7 +751,7 @@ def validate_config(data: dict[str, Any]) -> list[str]:
 
     localization = data.get("localization_adapter", {})
     if isinstance(localization, dict):
-        for key in ("input_odom_topic", "health_topic", "diagnostics_topic"):
+        for key in ("input_odom_topic", "output_odom_topic", "health_topic", "diagnostics_topic"):
             _require_topic(
                 errors,
                 "localization_adapter",
@@ -820,6 +820,21 @@ def validate_config(data: dict[str, Any]) -> list[str]:
             errors.append(
                 "localization_adapter.map_frame must differ from odom_frame"
             )
+        chassis = health if isinstance(health, dict) else {}
+        if localization.get("output_odom_topic") in (
+                localization.get("input_odom_topic"), chassis.get("scout_odom_topic")):
+            errors.append("normalized odometry output must differ from raw/chassis inputs")
+        route = data.get("route_orchestrator", {})
+        route = route if isinstance(route, dict) else {}
+        for route_key, expected in (
+            ("station_pose_topic", localization.get("output_odom_topic")),
+            ("station_motion_topic", chassis.get("scout_odom_topic")),
+            ("station_health_topic", localization.get("health_topic")),
+            ("station_base_frame", localization.get("base_frame")),
+            ("station_odom_frame", localization.get("odom_frame")),
+        ):
+            if route.get(route_key) != expected:
+                errors.append(f"route_orchestrator.{route_key} must match localization/chassis input")
 
     joy = data.get("joy_node", {})
     if isinstance(joy, dict):

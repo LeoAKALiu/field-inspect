@@ -43,6 +43,7 @@ class LocalizationSample:
     map_to_body: Transform3
     base_to_body: Optional[Transform3]
     odom_to_base: Optional[Transform3]
+    map_to_input: Optional[Transform3] = None
 
 
 @dataclass(frozen=True)
@@ -193,6 +194,10 @@ class LocalizationCore:
             return self._unhealthy("pose_stale")
         if not _is_valid_transform(sample.map_to_body):
             return self._unhealthy("pose_transform_invalid")
+        if sample.map_to_input is None:
+            return self._unhealthy("parent_transform_missing")
+        if not _is_valid_transform(sample.map_to_input):
+            return self._unhealthy("parent_transform_invalid")
         if sample.base_to_body is None:
             return self._unhealthy("body_extrinsic_missing")
         if not _is_valid_transform(sample.base_to_body):
@@ -202,7 +207,8 @@ class LocalizationCore:
         if not _is_valid_transform(sample.odom_to_base):
             return self._unhealthy("odom_transform_invalid")
 
-        map_to_base = compose(sample.map_to_body, inverse(sample.base_to_body))
+        map_to_base = compose(compose(sample.map_to_input, sample.map_to_body),
+                              inverse(sample.base_to_body))
         map_to_odom = compose(map_to_base, inverse(sample.odom_to_base))
         if not _is_valid_transform(map_to_odom):
             return self._unhealthy("output_transform_invalid")

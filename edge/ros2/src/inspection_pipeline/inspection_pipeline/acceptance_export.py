@@ -53,6 +53,8 @@ def export_acceptance(run_dir: Path) -> Path:
     from rclpy.serialization import deserialize_message
     from inspection_pipeline.bundle_export import _assert_plain_tree, _fsync_tree
     from inspection_pipeline.trajectory_export import load_scene_alignment
+    from inspection_pipeline.trajectory_export import _load_run_contract, _pose_contract
+    from inspection_pipeline.odometry import covariance_matrix
 
     _assert_plain_tree(run_dir)
     run = _json(run_dir / "manifest.json")
@@ -64,6 +66,11 @@ def export_acceptance(run_dir: Path) -> Path:
     if target.exists():
         raise ValueError("acceptance output already exists; preserve it and use a new run copy")
     config = _json(run_dir / "config/acceptance-export.json")
+    _, _, localization, _, base_to_body = _load_run_contract(run_dir)
+    if "output_odom_topic" in localization:
+        pose_topic, _, _, _ = _pose_contract(localization, base_to_body)
+        if config.get("pose_topic") != pose_topic:
+            raise ValueError("acceptance pose_topic must use recorded normalized odometry")
     camera = _json(run_dir / "config/camera_calibration.json")
     transform = _json(run_dir / "alignment/camera_to_scene.json")
     scene = _json(run_dir / "scene/scene-version.json")
@@ -123,6 +130,8 @@ def export_acceptance(run_dir: Path) -> Path:
     while stream.has_next():
         _, serialized, _ = stream.read_next()
         msg = deserialize_message(serialized, Odometry)
+        if "output_odom_topic" in localization:
+            covariance_matrix(msg.pose.covariance)
         if msg.header.frame_id != alignment.input_frame or msg.child_frame_id != transform["base_frame"]:
             raise ValueError("odometry frames disagree with registered camera transform")
         stamp = _stamp(msg)

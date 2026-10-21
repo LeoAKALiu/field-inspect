@@ -50,6 +50,7 @@ RAW_TOPICS = [
     "/odom",
     "/scout_status",
     "/Odometry",
+    "/localization/odometry",
     "/Laser_map",
     "/cloud_registered",
     "/cloud_registered_body",

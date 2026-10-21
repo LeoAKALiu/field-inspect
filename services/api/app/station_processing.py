@@ -124,6 +124,8 @@ def _process(db, evidence, ledger, archive, sequence):
             localization_context, localization_gaps = marker_localization.prepare(read, inventory, manifest, source)
             gaps.extend(localization_gaps)
             report["input_sha256"].update({path: inventory[path] for path in marker_localization.FILES if path in inventory})
+            if source.get("schema_version") == "1.3" and "config/system.yaml" in inventory:
+                report["input_sha256"]["config/system.yaml"] = inventory["config/system.yaml"]
             report["localization_estimates"] = []
             detections = [] if detected_ids is None else list(zip(detected_ids.flatten().tolist(), corners))
             # Stable ordering retains multiple occurrences of the same marker for review.

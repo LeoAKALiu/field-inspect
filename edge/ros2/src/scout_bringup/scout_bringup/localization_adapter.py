@@ -8,6 +8,7 @@ from typing import Optional
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 from geometry_msgs.msg import Transform, TransformStamped
 from nav_msgs.msg import Odometry
+from inspection_pipeline.odometry import normalize_odometry
 from rclpy.duration import Duration
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
@@ -50,6 +51,7 @@ class LocalizationAdapter(Node):
     def __init__(self) -> None:
         super().__init__("localization_adapter")
         self.declare_parameter("input_odom_topic", "/Odometry")
+        self.declare_parameter("output_odom_topic", "/localization/odometry")
         self.declare_parameter("health_topic", "/safety/tf_healthy")
         self.declare_parameter("diagnostics_topic", "/diagnostics")
         self.declare_parameter("input_global_frame", "camera_init")
@@ -92,6 +94,11 @@ class LocalizationAdapter(Node):
             ),
         )
         self._core = LocalizationCore(config)
+        self._input_frame = config.input_global_frame
+        output_topic = str(self.get_parameter("output_odom_topic").value)
+        if output_topic == str(self.get_parameter("input_odom_topic").value):
+            raise ValueError("normalized odometry output must differ from input")
+        self._odom_pub = self.create_publisher(Odometry, output_topic, 10)
 
         self._health_pub = self.create_publisher(
             Bool,
@@ -124,6 +131,8 @@ class LocalizationAdapter(Node):
         source_frame: str,
         stamp: Time,
     ) -> Optional[Transform3]:
+        if target_frame == source_frame:
+            return Transform3((0., 0., 0.), (0., 0., 0., 1.))
         try:
             result = self._tf_buffer.lookup_transform(
                 target_frame,
@@ -139,6 +148,7 @@ class LocalizationAdapter(Node):
         stamp = Time.from_msg(message.header.stamp)
         base_to_body = self._lookup(self._base_frame, self._body_frame, stamp)
         odom_to_base = self._lookup(self._odom_frame, self._base_frame, stamp)
+        map_to_input = self._lookup(self._map_frame, self._input_frame, stamp)
         now = self.get_clock().now()
         sample = LocalizationSample(
             stamp_ns=stamp.nanoseconds,
@@ -148,12 +158,22 @@ class LocalizationAdapter(Node):
             map_to_body=_transform3_from_pose(message),
             base_to_body=base_to_body,
             odom_to_base=odom_to_base,
+            map_to_input=map_to_input,
         )
         self._last_receive_monotonic_ns = time.monotonic_ns()
         self._last_stamp_ns = stamp.nanoseconds
-        self._last_outcome = self._core.evaluate(sample)
+        normalized = None
+        try:
+            if base_to_body is not None and map_to_input is not None:
+                normalized = normalize_odometry(message, map_to_input, base_to_body,
+                                                self._map_frame, self._base_frame)
+            self._last_outcome = self._core.evaluate(sample)
+        except ValueError as exc:
+            self._core.reset()
+            self._last_outcome = LocalizationOutcome(False, "odometry_invalid:" + str(exc), None, 0)
         if self._last_outcome.healthy and self._last_outcome.map_to_odom is not None:
             self._broadcast_transform(message, self._last_outcome.map_to_odom)
+            self._odom_pub.publish(normalized)
         self._publish_status(self._last_outcome)
 
     def _broadcast_transform(self, source: Odometry, transform: Transform3) -> None:

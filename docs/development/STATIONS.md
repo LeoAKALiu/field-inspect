@@ -1,6 +1,6 @@
 # 检查站采集
 
-既有 route_orchestrator 在 FollowPath 到站后等待实测停止。station_pose_topic 默认 /Odometry（必须是路线 frame 的完整位姿和实测速度），station_image_topic 默认 /camera/image_raw。速度上限 0.02 m/s、0.02 rad/s，连续稳定 2 秒，位移 0.03 m、姿态 0.02 rad、位置方差 0.04 m² 门限；这些是待现场确认的开发配置，不是标定结果。
+既有 route_orchestrator 在 FollowPath 到站后等待实测停止。station_pose_topic 默认 /localization/odometry（路线 map frame 下的 base_link 完整位姿），独立 station_motion_topic 默认 /odom（odom/base_link 实测底盘速度），健康输入默认 /safety/tf_healthy；station_image_topic 默认 /camera/image_raw。速度上限 0.02 m/s、0.02 rad/s，连续稳定 2 秒，位移 0.03 m、姿态 0.02 rad、位置方差 0.04 m² 门限；这些是待现场确认的开发配置，不是标定结果。完整坐标链、source.json 1.3 和旧记录兼容规则见 [坐标一致性](COORDINATE_CONSISTENCY.md)。
 
 每次尝试在当前运行 artifacts/station-captures 下独立持久化 started、captured/failed 元数据与 PNG、源帧时间。采集成功且文件 fsync 后，route/complete_station 才可确认并继续。30 秒超时后停留在站点，route/retry_capture 只重新采集，不能自行驱动车辆；route/skip_station 保留带例外结果。
 

@@ -48,6 +48,7 @@ profiles:
       - /odom
       - /scout_status
       - /Odometry
+      - /localization/odometry
       - /Laser_map
       - /cloud_registered
       - /cloud_registered_body
@@ -68,6 +69,7 @@ profiles:
       - /odom
       - /scout_status
       - /Odometry
+      - /localization/odometry
       - /Laser_map
       - /cloud_registered
       - /cloud_registered_body
@@ -89,6 +91,7 @@ profiles:
       - /odom
       - /scout_status
       - /Odometry
+      - /localization/odometry
       - /Laser_map
       - /cloud_registered
       - /cloud_registered_body
@@ -107,6 +110,7 @@ profiles:
       - /camera/camera_info
       - /scout_status
       - /Odometry
+      - /localization/odometry
       - /cloud_registered
       - /tf
       - /tf_static

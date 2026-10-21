@@ -54,6 +54,7 @@ def write_odometry(
     yaw_rad: float,
     frame_id: str = "camera_init",
     child_frame_id: str = "body",
+    topic: str = "/Odometry",
 ) -> None:
     """Write one serialized FAST-LIO-style Odometry sample."""
     message = Odometry()
@@ -66,7 +67,8 @@ def write_odometry(
     message.pose.pose.position.y = y_m
     message.pose.pose.orientation.z = math.sin(yaw_rad / 2.0)
     message.pose.pose.orientation.w = math.cos(yaw_rad / 2.0)
-    writer.write("/Odometry", serialize_message(message), stamp_ns)
+    message.pose.covariance = [0.001 if i % 7 == 0 else 0. for i in range(36)]
+    writer.write(topic, serialize_message(message), stamp_ns)
 
 
 def create_teaching_run(
@@ -77,6 +79,7 @@ def create_teaching_run(
     extrinsics_verified: bool = True,
     points: list[tuple[float, float, float]] | None = None,
     frame_id: str = "camera_init",
+    normalized: bool = False,
 ) -> Path:
     """Create a finalized run containing real rosbag2 records."""
     run_id = "run-route-teaching-001"
@@ -110,6 +113,10 @@ def create_teaching_run(
             }
         },
     }
+    pose_topic = "/localization/odometry" if normalized else "/Odometry"
+    if normalized:
+        system["localization_adapter"]["ros__parameters"]["output_odom_topic"] = pose_topic
+        system["scout_bringup"]["ros__parameters"]["base_to_body_xyz_m"] = [1., 0., 0.]
     system_path = config_dir / "system.yaml"
     system_path.write_text(yaml.safe_dump(system, sort_keys=False), encoding="utf-8")
     (config_dir / "fast_lio.yaml").write_text(
@@ -140,7 +147,7 @@ def create_teaching_run(
     )
     writer.create_topic(
         rosbag2_py.TopicMetadata(
-            name="/Odometry",
+            name=pose_topic,
             type="nav_msgs/msg/Odometry",
             serialization_format="cdr",
         )
@@ -153,7 +160,9 @@ def create_teaching_run(
             x_m=x_m,
             y_m=y_m,
             yaw_rad=yaw_rad,
-            frame_id=frame_id,
+            frame_id="map" if normalized else frame_id,
+            child_frame_id="base_link" if normalized else "body",
+            topic=pose_topic,
         )
     del writer
     return run_dir
@@ -206,6 +215,20 @@ def export_fixture(tmp_path: Path) -> tuple[Path, Path]:
         allow_non_mcap_bag=True,
     )
     return route, output
+
+
+def test_teaching_uses_normalized_base_without_second_extrinsic(tmp_path):
+    run_dir = create_teaching_run(tmp_path, normalized=True)
+    route_path = export_route_candidate(run_dir, write_spec(tmp_path), tmp_path / "candidate",
+                                        teaching_config_path=CONFIG_PATH, allow_non_mcap_bag=True)
+    route = yaml.safe_load(route_path.read_text())
+    assert route["frame_id"] == "map"
+    provenance = json.loads((route_path.parent / PROVENANCE_FILENAME).read_text())
+    assert provenance["source"]["topic"] == "/localization/odometry"
+    assert provenance["source"]["child_frame"] == "base_link"
+    assert provenance["candidate"]["route_length_m"] == pytest.approx(2., abs=.05)
+    assert provenance["extrinsics"]["base_to_body"]["translation_m"] == [1., 0., 0.]
+    assert provenance["pose_to_base"]["translation_m"] == [0., 0., 0.]
 
 
 def test_exports_unverified_candidate_report_and_is_idempotent(tmp_path: Path) -> None:
