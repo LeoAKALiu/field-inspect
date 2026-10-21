@@ -4,6 +4,8 @@
 
 `pnpm dev` 启动平台，API 默认 127.0.0.1:8000。TWIN_DB_PATH 和 TWIN_IMPORT_ROOT 指向私有持久目录。
 
+Mac 现场离线运行使用 `python3 scripts/start-local.py`，直接启动已安装的 API 和已构建的网页，不调用包管理器。准备、停止、持久目录及本阶段验证记录见 [MAC_RUNTIME.md](MAC_RUNTIME.md)；开发入口 `pnpm dev` 不作为现场启动方式。
+
 车端在 edge/ros2，目标 Ubuntu 22.04 / ROS Humble / Jetson ARM64。保留 ROS 包名。ProArt Windows x86 与 Ubuntu 24.04 WSL 不能冒充部署目标；不得把 x86 构建产物部署到 ARM64。
 
 本阶段保留测试文件，全部测试未执行。编译不是测试通过。
